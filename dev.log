@@ -1,0 +1,150 @@
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:8080
+- Network:       http://192.168.3.2:8080
+- Environments: .env
+✓ Ready in 576ms
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/osmany/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /home/osmany/frontend/package-lock.json
+
+⚠ Slow filesystem detected. The benchmark took 300ms. If /home/osmany/frontend/.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+
+ GET / 200 in 823ms (next.js: 324ms, application-code: 499ms)
+ GET /api/server-stats 200 in 192ms (next.js: 145ms, application-code: 47ms)
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+ GET /api/dashboard/stats 200 in 2.2s (next.js: 273ms, application-code: 1887ms)
+ GET /api/news 200 in 727ms (next.js: 64ms, application-code: 663ms)
+✓ Compiled in 2.9s
+ GET / 200 in 157ms (next.js: 12ms, application-code: 145ms)
+ GET /api/server-stats 200 in 50ms (next.js: 5ms, application-code: 45ms)
+ GET /api/dashboard/stats 200 in 14ms (next.js: 5ms, application-code: 9ms)
+ GET /api/news 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/server-stats 200 in 67ms (next.js: 30ms, application-code: 37ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+ GET /api/dashboard/stats 200 in 2.1s (next.js: 10ms, application-code: 2.1s)
+ GET /api/news 200 in 17ms (next.js: 7ms, application-code: 10ms)
+ GET /api/server-stats 200 in 48ms (next.js: 9ms, application-code: 39ms)
+ GET /api/dashboard/stats 200 in 63ms (next.js: 54ms, application-code: 9ms)
+ GET /api/books/scan?path=%2Fmnt%2FCanal 200 in 160ms (next.js: 129ms, application-code: 31ms)
+ GET /api/settings?key=libraryLibraryPaths 200 in 234ms (next.js: 219ms, application-code: 15ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2F%24RECYCLE.BIN 200 in 56ms (next.js: 47ms, application-code: 9ms)
+ GET /api/books/scan?path=%2Fmnt%2FTools%2FBooks 200 in 62ms (next.js: 4ms, application-code: 58ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FAOsmany%20128 200 in 70ms (next.js: 63ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2F50%20Dark%20Psychology%20%26%20Manipulation%20Books%20Collection 200 in 13ms (next.js: 6ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FBackgrounds 200 in 11ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FCalibre%20Library 200 in 11ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FClips 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FFine%20Woodworking%202025 200 in 10ms (next.js: 4ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FDownload 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FMicrosoft%20Excel%20Step%20by%20Step%20(Office%202021%20and%20Microsoft%20365) 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FDownloads 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FThe%20New%20York%20Times%20Best%20Sellers%20-%20April%2019%2C%202026 200 in 10ms (next.js: 5ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FEfectos 200 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks 200 in 10ms (next.js: 4ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FExtra%20Elements%20(%20Footage%20) 200 in 18ms (next.js: 12ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FFont 200 in 8ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.000 200 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.001 200 in 8ms (next.js: 2ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.002 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.003 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2Ficons 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FImage 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FImagenes 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FInstagram 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FMaggazine 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FMovies 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FMusic 200 in 14ms (next.js: 6ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FOh%20Q%20Musica 200 in 9ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FOlympic 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FPicture 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2Fpropuestasmusicale 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FProyectos 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FSounds 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FState%20of%20Art 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FSubtitels 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FSystem%20Volume%20Information 200 in 10ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FVideos 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FCanal%2FYoly%20Bazar 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/books/epub?path=%2Fmnt%2FTools%2FBooks%2FHow_to_Expect_the_Unexpected_-_Kit_Yates.epub 200 in 8.8s (next.js: 105ms, application-code: 8.7s)
+ GET /api/books/epub?path=%2Fmnt%2FTools%2FBooks%2FHow_to_Expect_the_Unexpected_-_Kit_Yates.epub&chapter=0 200 in 218ms (next.js: 4ms, application-code: 215ms)
+ GET /api/css/idGeneratedStyles.css 404 in 148ms (next.js: 25ms, application-code: 123ms)
+ GET /api/books/epub?path=%2Fmnt%2FTools%2FBooks%2FHow_to_Expect_the_Unexpected_-_Kit_Yates.epub&chapter=1 200 in 198ms (next.js: 5ms, application-code: 192ms)
+ GET /api/css/idGeneratedStyles.css 404 in 71ms (next.js: 5ms, application-code: 66ms)
+ GET /api/books/epub?path=%2Fmnt%2FTools%2FBooks%2FHow_to_Expect_the_Unexpected_-_Kit_Yates.epub&chapter=2 200 in 141ms (next.js: 4ms, application-code: 137ms)
+ GET /api/css/idGeneratedStyles.css 404 in 75ms (next.js: 5ms, application-code: 70ms)
+ GET /api/books/epub?path=%2Fmnt%2FTools%2FBooks%2FHow_to_Expect_the_Unexpected_-_Kit_Yates.epub&chapter=3 200 in 132ms (next.js: 4ms, application-code: 128ms)
+ GET /api/css/idGeneratedStyles.css 404 in 71ms (next.js: 5ms, application-code: 66ms)
+ GET /api/books/epub?path=%2Fmnt%2FTools%2FBooks%2FHow_to_Expect_the_Unexpected_-_Kit_Yates.epub&chapter=4 200 in 131ms (next.js: 4ms, application-code: 127ms)
+ GET /api/css/idGeneratedStyles.css 404 in 72ms (next.js: 5ms, application-code: 66ms)
+ GET /api/css/idGeneratedStyles.css 404 in 95ms (next.js: 6ms, application-code: 88ms)
+ GET /api/books/001_Title.xhtml 404 in 102ms (next.js: 6ms, application-code: 96ms)
+ GET /api/css/idGeneratedStyles.css 404 in 94ms (next.js: 7ms, application-code: 87ms)
+ GET /api/css/idGeneratedStyles.css 404 in 109ms (next.js: 7ms, application-code: 102ms)
+ GET /api/server-stats 200 in 43ms (next.js: 5ms, application-code: 38ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+ GET /api/dashboard/stats 200 in 2.1s (next.js: 45ms, application-code: 2.0s)
+ GET /api/news 200 in 13ms (next.js: 5ms, application-code: 8ms)
+ GET /api/server-stats 200 in 42ms (next.js: 5ms, application-code: 36ms)
+ GET /api/dashboard/stats 200 in 14ms (next.js: 7ms, application-code: 7ms)
+ GET /api/server-stats 200 in 42ms (next.js: 7ms, application-code: 35ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+ GET /api/dashboard/stats 200 in 2.0s (next.js: 42ms, application-code: 1960ms)
+ GET /api/dashboard/stats 200 in 15ms (next.js: 7ms, application-code: 9ms)
+ GET /api/server-stats 200 in 53ms (next.js: 19ms, application-code: 35ms)
+ GET /api/server-stats 200 in 53ms (next.js: 16ms, application-code: 36ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+ GET /api/dashboard/stats 200 in 1948ms (next.js: 8ms, application-code: 1940ms)
+ GET /api/dashboard/stats 200 in 15ms (next.js: 6ms, application-code: 9ms)
+ GET /api/server-stats 200 in 55ms (next.js: 19ms, application-code: 36ms)
+ GET /api/server-stats 200 in 49ms (next.js: 13ms, application-code: 37ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+ GET /api/dashboard/stats 200 in 1957ms (next.js: 5ms, application-code: 1952ms)
+ GET /api/server-stats 200 in 43ms (next.js: 6ms, application-code: 37ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT 1
+prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
+prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
+ GET /api/dashboard/stats 200 in 1967ms (next.js: 48ms, application-code: 1919ms)
+ GET /api/server-stats 200 in 43ms (next.js: 6ms, application-code: 37ms)
+ GET /api/dashboard/stats 200 in 55ms (next.js: 48ms, application-code: 7ms)

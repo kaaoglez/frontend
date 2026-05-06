@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String?   @unique
+  description String?
+  color       String    @default("#6B7280")
+  isPredefined Boolean  @default(false)
+  order       Int       @default(0)
+  parentId    String?
+  parent      Category? @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  subcategories Category[] @relation("CategoryHierarchy")
+  books       Book[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  books BookTag[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookTag {
+  bookId String
+  tagId  String
+  book   Book  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  tag    Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([bookId, tagId])
+}
+
+model Book {
+  id             String   @id @default(cuid())
+  title          String
+  author         String
+  description    String?
+  isbn           String?
+  publisher      String?
+  yearPublished  Int?
+  pages          Int?
+  language       String   @default("Español")
+  format         String   @default("Físico")
+  coverUrl       String?
+  location       String?
+  status         String   @default("No leído")
+  rating         Int?
+  notes          String?
+  searchText     String?
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags           BookTag[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Setting {
+  key   String @id
+  value String @default("")
+}
+
+model PrintJob {
+  id          String   @id @default(cuid())
+  fileName    String
+  filePath    String
+  printerName String?
+  status      String   @default("pending") // pending, printing, completed, failed, cancelled
+  copies      Int      @default(1)
+  pages       Int?
+  submittedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
