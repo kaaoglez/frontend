@@ -188,6 +188,11 @@ interface AppState {
   setImagePathHistory: (history: string[]) => void;
   currentImage: MediaItem | null;
   setCurrentImage: (image: MediaItem | null) => void;
+
+  // Sleep Timer
+  sleepTimerEnabled: boolean;
+  setSleepTimerEnabled: (enabled: boolean) => void;
+  stopAllMedia: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -280,4 +285,26 @@ export const useAppStore = create<AppState>((set) => ({
   setImagePathHistory: (history) => set({ imagePathHistory: history }),
   currentImage: null,
   setCurrentImage: (image) => set({ currentImage: image }),
+
+  // Sleep Timer
+  sleepTimerEnabled: false,
+  setSleepTimerEnabled: (enabled) => set({ sleepTimerEnabled: enabled }),
+  stopAllMedia: () => {
+    // Pause all HTML5 audio/video elements in the DOM first
+    if (typeof document !== 'undefined') {
+      document.querySelectorAll('audio, video').forEach((el) => {
+        el.pause();
+        (el as HTMLMediaElement).currentTime = 0;
+      });
+    }
+    set({
+      isPlaying: false,
+      currentTrack: null,
+      musicQueue: [],
+      radioPlaying: false,
+      radioStation: null,
+      currentMovie: null,
+      currentImage: null,
+    });
+  },
 }));
