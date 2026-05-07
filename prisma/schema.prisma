@@ -74,7 +74,7 @@ model PrintJob {
   fileName    String
   filePath    String
   printerName String?
-  status      String   @default("pending")
+  status      String   @default("pending") // pending, printing, completed, failed, cancelled
   copies      Int      @default(1)
   pages       Int?
   submittedBy String?
@@ -92,10 +92,10 @@ model MovieBookmark {
   backdropPath String?
   releaseDate String?
   voteAverage Float?
-  genreIds    String   @default("[]")
-  streamingUrl String?
+  genreIds    String   @default("[]") // JSON array of genre IDs
+  streamingUrl String? // External streaming link
   notes       String?
-  status      String   @default("pendiente")
+  status      String   @default("pendiente") // pendiente, viendo, vista, favorita
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -120,9 +120,26 @@ model MusicBookmark {
   artist      String?
   album       String?
   coverUrl    String?
-  externalUrl String?
+  externalUrl String? // External music link (Spotify, YouTube, etc.)
   notes       String?
   isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TvShowBookmark {
+  id          String   @id @default(cuid())
+  title       String
+  posterPath  String?
+  streamingUrl String?
+  notes       String?
+  status      String   @default("pendiente") // pendiente, viendo, completada, abandonada, favorita
+  rating      Int?
+  seasons     Int?
+  currentSeason Int?
+  currentEpisode Int?
+  network     String?
+  genre       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -133,10 +150,10 @@ model BookBookmark {
   author      String?
   description String?
   coverUrl    String?
-  externalUrl String?
+  externalUrl String? // External link (Amazon, Goodreads, Google Books, etc.)
   isbn        String?
-  format      String   @default("Físico")
-  status      String   @default("No leído")
+  format      String   @default("Físico") // Físico, Digital, Audiolibro
+  status      String   @default("No leído") // No leído, Leyendo, Leído, Favorito
   rating      Int?
   notes       String?
   createdAt   DateTime @default(now())

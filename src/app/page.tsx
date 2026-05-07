@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useAppStore, type Section, type FileItem, type MediaItem, type PrintJob, type PrinterInfo, type ServerStats } from '@/lib/store';
 import { toast } from 'sonner';
 import {
@@ -16,7 +19,7 @@ import {
   Monitor, Server as ServerIcon, Shield, Play, Pause, SkipBack, SkipForward,
   Volume2, VolumeX, Repeat, Shuffle, Maximize, Minimize,
   Disc3, FilmIcon, Music2, Radio, Headphones, Newspaper, Calendar, Globe,
-  Moon, Timer, TimerOff,
+  Moon, Timer, TimerOff, GripVertical,
 } from 'lucide-react';
 
 const SearchIcon = Search;
@@ -225,6 +228,7 @@ const NAV_ITEMS: { id: Section; label: string; icon: React.ReactNode }[] = [
   { id: 'music', label: 'Música', icon: <Music className="h-5 w-5" /> },
   { id: 'radio', label: 'Radio', icon: <Radio className="h-5 w-5" /> },
   { id: 'movies', label: 'Películas', icon: <Film className="h-5 w-5" /> },
+  { id: 'tvshows', label: 'TV Shows', icon: <Monitor className="h-5 w-5" /> },
   { id: 'images', label: 'Imágenes', icon: <ImageIcon className="h-5 w-5" /> },
   { id: 'printers', label: 'Impresora', icon: <Printer className="h-5 w-5" /> },
 ];
@@ -3939,13 +3943,23 @@ function MoviesSection() {
                       </div>
                     </div>
                     {/* Action buttons */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
-                      <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow bg-black/40 hover:bg-white/90 hover:text-violet-600 text-white border-none" onClick={(e) => { e.stopPropagation(); openEditMovieDialog(bm); }} title="Editar">
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow bg-black/40 hover:bg-red-500 text-white border-none" onClick={(e) => { e.stopPropagation(); deleteMovieBookmark(String(bm.id)); }} title="Eliminar">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow bg-black/40 hover:bg-white/90 hover:text-foreground text-white border-none" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditMovieDialog(bm); }}>
+                            <Edit className="h-4 w-4 mr-2" />Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteMovieBookmark(String(bm.id)); }} className="text-red-600 focus:text-red-600">
+                            <Trash2 className="h-4 w-4 mr-2" />Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   {/* Movie info */}
@@ -3991,6 +4005,777 @@ function MoviesSection() {
               <Button onClick={updateMovieBookmark} disabled={!bmTitle.trim()}>Actualizar</Button>
             ) : (
               <Button onClick={createMovieBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ─── TV Shows Section ─────────────────────────────────────────
+
+const tvShowStatuses = [
+  { key: 'all', label: 'Todas' },
+  { key: 'pendiente', label: 'Pendiente' },
+  { key: 'viendo', label: 'Viendo' },
+  { key: 'completada', label: 'Completada' },
+  { key: 'abandonada', label: 'Abandonada' },
+  { key: 'favorita', label: 'Favorita' },
+];
+
+function tvShowStatusLabel(status: string): string {
+  const map: Record<string, string> = { pendiente: 'Pendiente', viendo: 'Viendo', completada: 'Completada', abandonada: 'Abandonada', favorita: 'Favorita' };
+  return map[status] || status;
+}
+
+function tvShowStatusColor(status: string): string {
+  const map: Record<string, string> = {
+    pendiente: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400',
+    viendo: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
+    completada: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    abandonada: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+    favorita: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  };
+  return map[status] || 'bg-gray-100 text-gray-700';
+}
+
+function TvShowsSection() {
+  const {
+    tvshowCurrentPath, setTvshowCurrentPath,
+    tvshowPathHistory, setTvshowPathHistory,
+    tvshowLibraryPaths, setTvshowLibraryPaths,
+  } = useAppStore();
+
+  // ── Local files state ──
+  const [folders, setFolders] = useState<Array<{ name: string; path: string; itemCount: number }>>([]);
+  const [tvFiles, setTvFiles] = useState<MediaItem[]>([]);
+  const [loadingFiles, setLoadingFiles] = useState(true);
+  const [fileSearchQuery, setFileSearchQuery] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [newPath, setNewPath] = useState('');
+  const [sortAsc, setSortAsc] = useState(true);
+  const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  // ── Video player state (local) ──
+  const [currentTvVideo, setCurrentTvVideo] = useState<MediaItem | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+
+  // ── Bookmarks state ──
+  const [activeTab, setActiveTab] = useState<'local' | 'bookmarks'>('local');
+  const [bookmarks, setBookmarks] = useState<Array<Record<string, unknown>>>([]);
+  const [loadingBm, setLoadingBm] = useState(true);
+  const [bmSearchQuery, setBmSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [editingBm, setEditingBm] = useState<Record<string, unknown> | null>(null);
+  const [bmTitle, setBmTitle] = useState('');
+  const [bmPosterUrl, setBmPosterUrl] = useState('');
+  const [bmStreamingUrl, setBmStreamingUrl] = useState('');
+  const [bmNotes, setBmNotes] = useState('');
+  const [bmStatus, setBmStatus] = useState('pendiente');
+  const [bmRating, setBmRating] = useState('');
+  const [bmSeasons, setBmSeasons] = useState('');
+  const [bmCurrentSeason, setBmCurrentSeason] = useState('');
+  const [bmCurrentEpisode, setBmCurrentEpisode] = useState('');
+  const [bmNetwork, setBmNetwork] = useState('');
+  const [bmGenre, setBmGenre] = useState('');
+
+  // ── File browser ──
+  const loadMedia = useCallback(async () => {
+    try {
+      setLoadingFiles(true);
+      const res = await fetch(`/api/media/stream?path=${encodeURIComponent(tvshowCurrentPath)}&type=video`);
+      if (res.ok) {
+        const data = await res.json();
+        setFolders(data.folders || []);
+        setTvFiles((data.files || []).map((f: Record<string, unknown>) => ({ ...f, type: 'video' as const })));
+      }
+    } catch {
+      toast.error('Error cargando TV Shows');
+    } finally {
+      setLoadingFiles(false);
+    }
+  }, [tvshowCurrentPath]);
+
+  useEffect(() => { loadMedia(); }, [loadMedia]);
+
+  // Load saved paths from DB on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await fetch('/api/settings?key=tvshowLibraryPaths');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.value) {
+            const saved = JSON.parse(data.value) as string[];
+            if (saved.length > 0) {
+              setTvshowLibraryPaths(saved);
+              setTvshowCurrentPath(saved[0]);
+              setTvshowPathHistory([saved[0]]);
+            }
+          }
+        }
+      } catch { /* use defaults */ }
+    };
+    loadSettings();
+  }, [setTvshowLibraryPaths, setTvshowCurrentPath, setTvshowPathHistory]);
+
+  const saveTvShowPaths = useCallback(async (paths: string[]) => {
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'tvshowLibraryPaths', value: JSON.stringify(paths) }),
+      });
+    } catch { /* ignore */ }
+  }, []);
+
+  const updateTvShowPaths = useCallback((newPaths: string[]) => {
+    setTvshowLibraryPaths(newPaths);
+    saveTvShowPaths(newPaths);
+  }, [setTvshowLibraryPaths, saveTvShowPaths]);
+
+  const navigateTo = (path: string) => {
+    setTvshowPathHistory([...tvshowPathHistory, path]);
+    setTvshowCurrentPath(path);
+  };
+
+  const goBack = () => {
+    if (tvshowPathHistory.length > 1) {
+      const h = [...tvshowPathHistory]; h.pop();
+      setTvshowPathHistory(h);
+      setTvshowCurrentPath(tvshowPathHistory[tvshowPathHistory.length - 2]);
+    }
+  };
+
+  const goUp = () => {
+    const parent = tvshowCurrentPath.split('/').slice(0, -1).join('/') || '/';
+    if (parent !== tvshowCurrentPath) navigateTo(parent);
+  };
+
+  const handleDelete = async (filePath: string, name: string) => {
+    if (!confirm(`¿Eliminar "${name}"?`)) return;
+    try {
+      const res = await fetch('/api/files/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath }),
+      });
+      if (res.ok) {
+        toast.success(`"${name}" eliminado`);
+        loadMedia();
+      } else {
+        toast.error('Error al eliminar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    }
+  };
+
+  const handleRename = (item: { path: string; name: string }) => {
+    setRenameItem(item);
+    setRenameValue(item.name);
+  };
+
+  const confirmRename = async () => {
+    if (!renameItem || !renameValue.trim() || renameValue.trim() === renameItem.name) {
+      setRenameItem(null);
+      return;
+    }
+    try {
+      const res = await fetch('/api/files/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath: renameItem.path, newName: renameValue.trim() }),
+      });
+      if (res.ok) {
+        const data = await res.json().catch(() => ({ newName: renameValue.trim() }));
+        toast.success(`Renombrado a "${data.newName || renameValue.trim()}"`);
+        loadMedia();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al renombrar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    }
+    setRenameItem(null);
+  };
+
+  // ── Video player ──
+  const playTvVideo = (item: MediaItem) => { setCurrentTvVideo(item); };
+
+  const closeTvVideo = () => {
+    if (videoRef.current) videoRef.current.pause();
+    setCurrentTvVideo(null);
+    setIsFullscreen(false);
+    setVideoError(false);
+  };
+
+  const toggleFullscreen = () => {
+    if (!playerContainerRef.current) return;
+    if (!document.fullscreenElement) {
+      playerContainerRef.current.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  };
+
+  const getDirectUrl = (item: MediaItem) => `${window.location.origin}/api/media/stream?path=${encodeURIComponent(item.path)}`;
+
+  const openInNewTab = (item: MediaItem) => window.open(getDirectUrl(item), '_blank');
+
+  const copyDirectLink = (item: MediaItem) => {
+    navigator.clipboard.writeText(getDirectUrl(item));
+    toast.success('Enlace copiado al portapapeles');
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  // ── File filters ──
+  const filteredTvFiles = fileSearchQuery ? tvFiles.filter((m) => m.name.toLowerCase().includes(fileSearchQuery.toLowerCase())) : tvFiles;
+  const filteredFolders = fileSearchQuery ? folders.filter((f) => f.name.toLowerCase().includes(fileSearchQuery.toLowerCase())) : folders;
+  const sortedFolders = sortAsc ? [...filteredFolders].sort((a, b) => a.name.localeCompare(b.name)) : [...filteredFolders].sort((a, b) => b.name.localeCompare(a.name));
+  const sortedFiles = sortAsc ? [...filteredTvFiles].sort((a, b) => a.name.localeCompare(b.name)) : [...filteredTvFiles].sort((a, b) => b.name.localeCompare(a.name));
+  const totalSize = tvFiles.reduce((s, m) => s + m.size, 0);
+
+  // ── Bookmarks ──
+  const loadBookmarks = useCallback(async () => {
+    try {
+      setLoadingBm(true);
+      const res = await fetch('/api/tvshows/bookmarks');
+      if (res.ok) {
+        const data = await res.json();
+        setBookmarks(data.bookmarks || []);
+      }
+    } catch {
+      toast.error('Error cargando series');
+    } finally {
+      setLoadingBm(false);
+    }
+  }, []);
+
+  useEffect(() => { if (activeTab === 'bookmarks') loadBookmarks(); }, [activeTab, loadBookmarks]);
+
+  const filteredBookmarks = bookmarks
+    .filter((bm) => statusFilter === 'all' || String(bm.status) === statusFilter)
+    .filter((bm) => !bmSearchQuery || String(bm.title).toLowerCase().includes(bmSearchQuery.toLowerCase()) || String(bm.genre || '').toLowerCase().includes(bmSearchQuery.toLowerCase()) || String(bm.network || '').toLowerCase().includes(bmSearchQuery.toLowerCase()));
+
+  const openAddDialog = () => {
+    setEditingBm(null);
+    setBmTitle(''); setBmPosterUrl(''); setBmStreamingUrl(''); setBmNotes('');
+    setBmStatus('pendiente'); setBmRating(''); setBmSeasons(''); setBmCurrentSeason(''); setBmCurrentEpisode('');
+    setBmNetwork(''); setBmGenre('');
+    setShowAddDialog(true);
+  };
+
+  const openEditDialog = (bm: Record<string, unknown>) => {
+    setEditingBm(bm);
+    setBmTitle(String(bm.title));
+    setBmPosterUrl(String(bm.posterPath || ''));
+    setBmStreamingUrl(String(bm.streamingUrl || ''));
+    setBmNotes(String(bm.notes || ''));
+    setBmStatus(String(bm.status || 'pendiente'));
+    setBmRating(bm.rating != null ? String(bm.rating) : '');
+    setBmSeasons(bm.seasons != null ? String(bm.seasons) : '');
+    setBmCurrentSeason(bm.currentSeason != null ? String(bm.currentSeason) : '');
+    setBmCurrentEpisode(bm.currentEpisode != null ? String(bm.currentEpisode) : '');
+    setBmNetwork(String(bm.network || ''));
+    setBmGenre(String(bm.genre || ''));
+    setShowAddDialog(true);
+  };
+
+  const createBookmark = async () => {
+    if (!bmTitle.trim()) return;
+    const loadingToast = toast.loading('Guardando serie...');
+    try {
+      const res = await fetchWithTimeout('/api/tvshows/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: bmTitle, posterPath: bmPosterUrl || null, streamingUrl: bmStreamingUrl || null,
+          notes: bmNotes || null, status: bmStatus, rating: bmRating ? parseInt(bmRating) : null,
+          seasons: bmSeasons ? parseInt(bmSeasons) : null, currentSeason: bmCurrentSeason ? parseInt(bmCurrentSeason) : null,
+          currentEpisode: bmCurrentEpisode ? parseInt(bmCurrentEpisode) : null, network: bmNetwork || null, genre: bmGenre || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success('Serie guardada', { id: loadingToast });
+        setShowAddDialog(false);
+        loadBookmarks();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al guardar', { id: loadingToast });
+      }
+    } catch (err) {
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo agotado' : 'Error de conexión', { id: loadingToast });
+    }
+  };
+
+  const updateBookmark = async () => {
+    if (!editingBm || !bmTitle.trim()) return;
+    const loadingToast = toast.loading('Actualizando serie...');
+    try {
+      const res = await fetchWithTimeout(`/api/tvshows/bookmarks/${editingBm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: bmTitle, posterPath: bmPosterUrl || null, streamingUrl: bmStreamingUrl || null,
+          notes: bmNotes || null, status: bmStatus, rating: bmRating ? parseInt(bmRating) : null,
+          seasons: bmSeasons ? parseInt(bmSeasons) : null, currentSeason: bmCurrentSeason ? parseInt(bmCurrentSeason) : null,
+          currentEpisode: bmCurrentEpisode ? parseInt(bmCurrentEpisode) : null, network: bmNetwork || null, genre: bmGenre || null,
+        }),
+      });
+      if (res.ok) {
+        toast.success('Serie actualizada', { id: loadingToast });
+        setShowAddDialog(false); setEditingBm(null);
+        loadBookmarks();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al actualizar', { id: loadingToast });
+      }
+    } catch (err) {
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo agotado' : 'Error de conexión', { id: loadingToast });
+    }
+  };
+
+  const deleteBookmark = async (id: string) => {
+    if (!confirm('¿Eliminar esta serie?')) return;
+    try {
+      const res = await fetchWithTimeout(`/api/tvshows/bookmarks/${id}`, { method: 'DELETE' });
+      if (res.ok) { toast.success('Eliminada'); loadBookmarks(); }
+    } catch { toast.error('Error al eliminar'); }
+  };
+
+  const closeDialog = () => {
+    setShowAddDialog(false); setEditingBm(null);
+    setBmTitle(''); setBmPosterUrl(''); setBmStreamingUrl(''); setBmNotes('');
+    setBmStatus('pendiente'); setBmRating(''); setBmSeasons(''); setBmCurrentSeason(''); setBmCurrentEpisode('');
+    setBmNetwork(''); setBmGenre('');
+  };
+
+  const tvDisplayName = currentTvVideo?.name.replace(/\.[^.]+$/, '') || '';
+
+  return (
+    <div className="space-y-4">
+      {/* Video Player Overlay */}
+      {currentTvVideo && (
+        <div ref={playerContainerRef} className="fixed inset-0 z-50 bg-black flex flex-col">
+          <div className="flex items-center justify-between px-4 py-2 bg-black/80 text-white absolute top-0 left-0 right-0 z-10">
+            <h3 className="text-sm font-medium truncate">{tvDisplayName}</h3>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white/80" title="Copiar enlace" onClick={() => copyDirectLink(currentTvVideo)}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white/80" title="Abrir en nueva pestaña" onClick={() => openInNewTab(currentTvVideo)}>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white/80" onClick={toggleFullscreen}>
+                {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+              </Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:text-white/80" onClick={closeTvVideo}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          {videoError ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
+              <div className="p-4 rounded-2xl bg-white/10"><AlertTriangle className="h-12 w-12 text-amber-400" /></div>
+              <div className="text-center max-w-md">
+                <h3 className="text-lg font-semibold text-white mb-2">Formato no soportado en el navegador</h3>
+                <p className="text-sm text-white/60 mb-1">{currentTvVideo.name}</p>
+                <p className="text-xs text-white/40 mb-6">Puedes abrir el enlace directamente con VLC u otro reproductor externo.</p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Button variant="outline" className="text-white border-white/30 hover:bg-white/10" onClick={() => openInNewTab(currentTvVideo)}><ExternalLink className="h-4 w-4 mr-2" />Abrir enlace directo</Button>
+                  <Button variant="outline" className="text-white border-white/30 hover:bg-white/10" onClick={() => copyDirectLink(currentTvVideo)}><Copy className="h-4 w-4 mr-2" />Copiar enlace</Button>
+                  <Button variant="ghost" className="text-white/60 hover:text-white" onClick={closeTvVideo}>Cerrar</Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <video ref={videoRef} className="w-full h-full object-contain" autoPlay controls playsInline onError={() => setVideoError(true)} src={`/api/media/stream?path=${encodeURIComponent(currentTvVideo.path)}`} />
+          )}
+        </div>
+      )}
+
+      {/* Settings Dialog */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Carpetas de TV Shows</DialogTitle>
+            <DialogDescription>Configura las carpetas donde buscas series</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              {tvshowLibraryPaths.map((p, i) => (
+                <div key={p} className="flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-sky-500 flex-shrink-0" />
+                  <span className="text-sm flex-1 font-mono">{p}</span>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateTvShowPaths(tvshowLibraryPaths.filter((_, idx) => idx !== i))}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input placeholder="/mnt/MisSeries" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1" />
+              <Button onClick={() => { if (newPath.trim()) { updateTvShowPaths([...tvshowLibraryPaths, newPath.trim()]); setNewPath(''); } }} disabled={!newPath.trim()}>
+                <Plus className="h-4 w-4 mr-1" />Agregar
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Las carpetas se guardan en la base de datos.</p>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={!!renameItem} onOpenChange={(open) => { if (!open) setRenameItem(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Renombrar</DialogTitle>
+            <DialogDescription>Cambia el nombre de "{renameItem?.name}"</DialogDescription>
+          </DialogHeader>
+          <Input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') confirmRename(); if (e.key === 'Escape') setRenameItem(null); }} autoFocus />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameItem(null)}>Cancelar</Button>
+            <Button onClick={confirmRename} disabled={!renameValue.trim() || renameValue.trim() === renameItem?.name}>Renombrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="flex items-center gap-1 flex-1 min-w-0 flex-wrap">
+          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goBack} disabled={tvshowPathHistory.length <= 1}><ArrowLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goUp}><ChevronUp className="h-4 w-4" /></Button>
+          {tvshowLibraryPaths.map((p) => (
+            <Button key={p} variant={tvshowCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs" onClick={() => { setTvshowPathHistory([p]); setTvshowCurrentPath(p); }}>
+              <Monitor className="h-3.5 w-3.5 mr-1" />{p.split('/').pop()}
+            </Button>
+          ))}
+          <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => navigateTo('/')}><HomeIcon className="h-4 w-4" /></Button>
+          {tvshowCurrentPath !== '/' && !tvshowLibraryPaths.includes(tvshowCurrentPath) && (
+            <><ChevronRight className="h-3 w-3 text-muted-foreground flex-shrink-0" /><span className="text-sm font-medium truncate">{tvshowCurrentPath.split('/').pop()}</span></>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={activeTab === 'local' ? fileSearchQuery : bmSearchQuery} onChange={(e) => { if (activeTab === 'local') setFileSearchQuery(e.target.value); else setBmSearchQuery(e.target.value); }} className="pl-9 h-8 w-48" />
+          </div>
+          <Button variant={sortAsc ? 'secondary' : 'outline'} size="icon" className="h-8 w-8" onClick={() => setSortAsc(!sortAsc)} title={sortAsc ? 'A → Z' : 'Z → A'}>
+            <ArrowUpDown className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShowSettings(true)}><MoreVertical className="h-4 w-4" /></Button>
+          <Button variant="outline" size="icon" className="h-8 w-8" onClick={loadMedia}><RefreshCw className="h-4 w-4" /></Button>
+        </div>
+      </div>
+
+      {/* Tab Switcher */}
+      <div className="flex gap-2">
+        <Button variant={activeTab === 'local' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setActiveTab('local')}>
+          <Monitor className="h-3.5 w-3.5 mr-1" />TV Shows de Archivo
+        </Button>
+        <Button variant={activeTab === 'bookmarks' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setActiveTab('bookmarks')}>
+          <Bookmark className="h-3.5 w-3.5 mr-1" />Mis TV Shows
+        </Button>
+      </div>
+
+      {activeTab === 'local' && (
+      <>
+        {/* Quick stats */}
+        {!loadingFiles && (tvFiles.length > 0 || folders.length > 0) && (
+          <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
+            <span className="font-medium text-sky-600 dark:text-sky-400">{tvFiles.length} videos</span>
+            <span>{folders.length} carpetas</span>
+            {tvFiles.length > 0 && <span>{formatBytes(totalSize)}</span>}
+            <span className="font-mono truncate">{tvshowCurrentPath}</span>
+          </div>
+        )}
+
+        {/* Loading */}
+        {loadingFiles ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-video rounded-lg" />)}</div>
+        ) : folders.length === 0 && tvFiles.length === 0 ? (
+          <Card className="border-dashed border-2">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <Monitor className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <p className="font-medium mb-1">No hay videos aquí</p>
+              <p className="text-sm text-muted-foreground">Configura tus carpetas de TV Shows con el botón <MoreVertical className="h-3.5 w-3.5 inline" /> arriba</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            {/* Folders */}
+            {filteredFolders.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-2">Carpetas</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {sortedFolders.map((folder) => {
+                    const subCount = (folder as unknown as { subFolderCount?: number }).subFolderCount || 0;
+                    return (
+                      <Card key={folder.path} className="group cursor-pointer hover:border-sky-300 dark:hover:border-sky-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
+                        <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                          <div className="relative">
+                            <div className="p-3 rounded-xl bg-sky-100 dark:bg-sky-900/30"><Folder className="h-6 w-6 text-sky-600 dark:text-sky-400" /></div>
+                            {folder.itemCount > 0 ? (
+                              <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-sky-500/70 text-white h-4 w-4 flex items-center justify-center p-0"><Play className="h-2 w-2" /></Badge>
+                            ) : subCount > 0 ? (
+                              <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-amber-500/70 text-white h-4 min-w-4 flex items-center justify-center p-0">{subCount}</Badge>
+                            ) : null}
+                          </div>
+                          <p className="text-xs font-medium truncate w-full">{folder.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{folder.itemCount > 0 ? `${folder.itemCount} video${folder.itemCount !== 1 ? 's' : ''}` : subCount > 0 ? `${subCount} subcarpeta${subCount !== 1 ? 's' : ''}` : 'Vacío'}</p>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Video Grid */}
+            {filteredTvFiles.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {sortedFiles.map((file) => {
+                  const displayName = file.name.replace(/\.[^.]+$/, '');
+                  const ext = file.extension.toUpperCase();
+                  return (
+                    <Card key={file.path} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative" onClick={() => playTvVideo(file)}>
+                      <div className="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <Film className="h-12 w-12 text-white/20 group-hover:text-white/40 transition-colors" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                          <div className="w-14 h-14 rounded-full bg-white/90 dark:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity scale-75 group-hover:scale-100">
+                            <Play className="h-7 w-7 text-sky-600 dark:text-sky-400 ml-1" />
+                          </div>
+                        </div>
+                        <Badge className="absolute top-2 right-2 text-[10px] bg-black/60 text-white border-none">{ext}</Badge>
+                      </div>
+                      <CardContent className="p-3">
+                        <h4 className="text-sm font-medium truncate">{displayName}</h4>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-muted-foreground">{formatBytes(file.size)}</span>
+                          <span className="text-[10px] text-muted-foreground">{formatTimeAgo(file.modifiedAt)}</span>
+                        </div>
+                      </CardContent>
+                      {/* Action buttons on hover */}
+                      <div className="absolute top-2 left-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow" onClick={(e) => { e.stopPropagation(); copyDirectLink(file); }} title="Copiar enlace directo">
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                        <FileActionsMenu item={file} onRename={handleRename} onDelete={(f) => handleDelete(f.path, f.name)}>
+                          <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </Button>
+                        </FileActionsMenu>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </>
+      )}
+
+      {activeTab === 'bookmarks' && (
+        <div className="space-y-4">
+          {/* Status filter */}
+          <div className="flex flex-wrap gap-2">
+            {tvShowStatuses.map((f) => (
+              <Button key={f.key} variant={statusFilter === f.key ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setStatusFilter(f.key)}>
+                {f.label}
+              </Button>
+            ))}
+          </div>
+
+          {/* Stats */}
+          {!loadingBm && bookmarks.length > 0 && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{filteredBookmarks.length} serie{filteredBookmarks.length !== 1 ? 's' : ''} {statusFilter !== 'all' ? tvShowStatusLabel(statusFilter).toLowerCase() + '(s)' : ''}</p>
+              <Button size="sm" onClick={openAddDialog}>
+                <Plus className="h-3.5 w-3.5 mr-1" />Agregar
+              </Button>
+            </div>
+          )}
+
+          {/* Loading */}
+          {loadingBm ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="aspect-[2/3] rounded-lg" />)}
+            </div>
+          ) : filteredBookmarks.length === 0 ? (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Monitor className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">{bookmarks.length === 0 ? 'Sin series guardadas aún' : 'No hay resultados'}</p>
+                <p className="text-sm text-muted-foreground mb-4">Guarda tus series favoritas con poster y detalles</p>
+                {bookmarks.length === 0 && (
+                  <Button variant="outline" size="sm" onClick={openAddDialog}>
+                    <Plus className="h-4 w-4 mr-1" />Agregar Serie
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {filteredBookmarks.map((bm) => (
+                <Card key={String(bm.id)} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  {/* Poster */}
+                  <div className="aspect-[2/3] relative bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-950/40 dark:to-blue-950/40">
+                    {bm.posterPath ? (
+                      <img src={String(bm.posterPath)} alt={String(bm.title)} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                        <Monitor className="h-12 w-12 text-sky-300 dark:text-sky-700" />
+                      </div>
+                    )}
+                    {/* Status badge */}
+                    <div className="absolute top-2 left-2">
+                      <Badge className={`text-[10px] ${tvShowStatusColor(String(bm.status))}`}>
+                        {tvShowStatusLabel(String(bm.status))}
+                      </Badge>
+                    </div>
+                    {/* Play overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-all flex gap-2">
+                        {bm.streamingUrl && (
+                          <Button size="icon" className="h-10 w-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white shadow-lg" onClick={(e) => { e.stopPropagation(); window.open(String(bm.streamingUrl), '_blank'); }}>
+                            <Play className="h-5 w-5 ml-0.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    {/* Action buttons */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow bg-black/40 hover:bg-white/90 hover:text-foreground text-white border-none" onClick={(e) => e.stopPropagation()}>
+                            <MoreVertical className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEditDialog(bm); }}>
+                            <Edit className="h-4 w-4 mr-2" />Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); deleteBookmark(String(bm.id)); }} className="text-red-600 focus:text-red-600">
+                            <Trash2 className="h-4 w-4 mr-2" />Eliminar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    {/* Rating */}
+                    {bm.rating != null && Number(bm.rating) > 0 && (
+                      <div className="absolute bottom-2 left-2">
+                        <Badge variant="secondary" className="text-[10px] bg-black/50 text-amber-400 border-none backdrop-blur-sm flex items-center gap-0.5">
+                          <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />{Number(bm.rating).toFixed(1)}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  {/* Info */}
+                  <CardContent className="p-3">
+                    <p className="text-sm font-medium truncate">{String(bm.title)}</p>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {bm.genre && <span className="text-[10px] text-muted-foreground">{String(bm.genre)}</span>}
+                      {bm.seasons && <span className="text-[10px] text-muted-foreground">· {bm.seasons} temp.</span>}
+                    </div>
+                    {bm.currentSeason && bm.currentEpisode && (
+                      <p className="text-[10px] text-sky-600 dark:text-sky-400 mt-0.5">S{String(bm.currentSeason)}E{String(bm.currentEpisode)}</p>
+                    )}
+                    {bm.notes && <p className="text-[10px] text-muted-foreground truncate mt-0.5">{String(bm.notes)}</p>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add/Edit Bookmark Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={(open) => { if (!open) closeDialog(); else setShowAddDialog(true); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editingBm ? 'Editar Serie' : 'Agregar Serie'}</DialogTitle>
+            <DialogDescription>{editingBm ? 'Modifica los detalles de la serie' : 'Guarda una serie a tu colección'}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <div>
+              <Label>Título *</Label>
+              <Input value={bmTitle} onChange={(e) => setBmTitle(e.target.value)} placeholder="Nombre de la serie" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Temporadas</Label>
+                <Input type="number" min="0" value={bmSeasons} onChange={(e) => setBmSeasons(e.target.value)} placeholder="8" />
+              </div>
+              <div>
+                <Label>Género</Label>
+                <Input value={bmGenre} onChange={(e) => setBmGenre(e.target.value)} placeholder="Drama, Comedia..." />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Temporada actual</Label>
+                <Input type="number" min="0" value={bmCurrentSeason} onChange={(e) => setBmCurrentSeason(e.target.value)} placeholder="3" />
+              </div>
+              <div>
+                <Label>Episodio actual</Label>
+                <Input type="number" min="0" value={bmCurrentEpisode} onChange={(e) => setBmCurrentEpisode(e.target.value)} placeholder="5" />
+              </div>
+            </div>
+            <div>
+              <Label>Red</Label>
+              <Input value={bmNetwork} onChange={(e) => setBmNetwork(e.target.value)} placeholder="Netflix, HBO, AMC..." />
+            </div>
+            <div>
+              <Label>Estado</Label>
+              <Select value={bmStatus} onValueChange={setBmStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {tvShowStatuses.filter((f) => f.key !== 'all').map((f) => (
+                    <SelectItem key={f.key} value={f.key}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Calificación (1-10)</Label>
+              <Input type="number" min="0" max="10" step="0.1" value={bmRating} onChange={(e) => setBmRating(e.target.value)} placeholder="8.5" className="w-24" />
+            </div>
+            <div>
+              <Label>URL para ver</Label>
+              <Input value={bmStreamingUrl} onChange={(e) => setBmStreamingUrl(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <Label>URL del Poster</Label>
+              <Input value={bmPosterUrl} onChange={(e) => setBmPosterUrl(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <Label>Notas</Label>
+              <Textarea value={bmNotes} onChange={(e) => setBmNotes(e.target.value)} placeholder="Notas..." rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
+            {editingBm ? (
+              <Button onClick={updateBookmark} disabled={!bmTitle.trim()}>Actualizar</Button>
+            ) : (
+              <Button onClick={createBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
             )}
           </DialogFooter>
         </DialogContent>
@@ -4482,6 +5267,220 @@ function ImagesSection() {
 
 // ─── Radio Section ──────────────────────────────────────────
 
+// ─── Sortable Preset Station Card (Grid) ──────────────────
+
+function SortablePresetCard({ station, isActive, radioPlaying, isFavorite, onPlay, onToggleFavorite, onHide }: {
+  station: typeof RADIO_STATIONS[number];
+  isActive: boolean;
+  radioPlaying: boolean;
+  isFavorite: boolean;
+  onPlay: () => void;
+  onToggleFavorite: () => void;
+  onHide: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: station.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`${isDragging ? 'z-50 scale-105 shadow-xl' : ''}`}>
+      <Card
+        className={`group cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 relative ${
+          isActive
+            ? 'border-2 border-violet-400 bg-violet-50/50 dark:bg-violet-950/10'
+            : 'hover:border-violet-200 dark:hover:border-violet-800'
+        }`}
+        onClick={onPlay}
+      >
+        <CardContent className="p-3">
+          <div className="flex items-start gap-2">
+            {/* Drag handle */}
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-0.5 flex-shrink-0 select-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+
+            {/* Icon */}
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isActive && radioPlaying ? 'bg-violet-500 text-white' : 'bg-muted'
+            }`}>
+              {isActive && radioPlaying ? (
+                <div className="flex items-end gap-[2px] h-2.5">
+                  <div className="w-[2px] bg-white rounded-full animate-pulse" style={{ height: '60%' }} />
+                  <div className="w-[2px] bg-white rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                  <div className="w-[2px] bg-white rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
+                </div>
+              ) : (
+                <Headphones className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium truncate">{station.name}</p>
+                {isFavorite && <Heart className="h-3 w-3 text-rose-500 fill-rose-500 flex-shrink-0" />}
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate">{station.genre} · {station.country}</p>
+            </div>
+
+            {/* Play + 3-dot menu */}
+            <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={onToggleFavorite}>
+                    <Heart className={`h-4 w-4 mr-2 ${isFavorite ? 'text-rose-500 fill-rose-500' : ''}`} />
+                    {isFavorite ? 'Quitar de Mis Emisoras' : 'Agregar a Mis Emisoras'}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onHide} className="text-red-600 focus:text-red-600">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Ocultar de la lista
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant={isActive && radioPlaying ? 'default' : 'outline'}
+                size="icon"
+                className={`h-7 w-7 flex-shrink-0 ${isActive && radioPlaying ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+                onClick={onPlay}
+              >
+                {isActive && radioPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Sortable Custom Station Card (Grid) ──────────────────
+
+function SortableStationCard({ station, isActive, radioPlaying, onPlay, onToggleFavorite, onEdit, onDelete }: {
+  station: Record<string, unknown>;
+  isActive: boolean;
+  radioPlaying: boolean;
+  onPlay: () => void;
+  onToggleFavorite: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: String(station.id) });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`${isDragging ? 'z-50 scale-105 shadow-xl' : ''}`}>
+      <Card
+        className={`group cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 relative ${
+          isActive
+            ? 'border-2 border-violet-400 bg-violet-50/50 dark:bg-violet-950/10'
+            : 'hover:border-violet-200 dark:hover:border-violet-800'
+        }`}
+        onClick={onPlay}
+      >
+        <CardContent className="p-3">
+          <div className="flex items-start gap-2">
+            {/* Drag handle */}
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground mt-0.5 flex-shrink-0 select-none"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </div>
+
+            {/* Icon */}
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              isActive && radioPlaying ? 'bg-violet-500 text-white' : 'bg-muted'
+            }`}>
+              {isActive && radioPlaying ? (
+                <div className="flex items-end gap-[2px] h-2.5">
+                  <div className="w-[2px] bg-white rounded-full animate-pulse" style={{ height: '60%' }} />
+                  <div className="w-[2px] bg-white rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                  <div className="w-[2px] bg-white rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
+                </div>
+              ) : (
+                <Radio className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-medium truncate">{String(station.name)}</p>
+                {station.isFavorite && <Heart className="h-3 w-3 text-rose-500 fill-rose-500 flex-shrink-0" />}
+              </div>
+              <p className="text-[11px] text-muted-foreground truncate">
+                {station.genre ? `${String(station.genre)} · ` : ''}{station.country || ''}
+              </p>
+            </div>
+
+            {/* Play + 3-dot menu */}
+            <div className="flex items-center gap-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem onClick={onToggleFavorite}>
+                    <Heart className={`h-4 w-4 mr-2 ${station.isFavorite ? 'text-rose-500 fill-rose-500' : ''}`} />
+                    {station.isFavorite ? 'Quitar de favoritas' : 'Marcar favorita'}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={onEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onDelete} className="text-red-600 focus:text-red-600">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant={isActive && radioPlaying ? 'default' : 'outline'}
+                size="icon"
+                className={`h-7 w-7 flex-shrink-0 ${isActive && radioPlaying ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
+                onClick={onPlay}
+              >
+                {isActive && radioPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3 ml-0.5" />}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── Radio Section ─────────────────────────────────────────
+
+// localStorage helpers for preset stations (order + hidden only; favorites use DB)
+function getPresetOrder(): string[] | null {
+  try { const o = JSON.parse(localStorage.getItem('radioPresetOrder') || ''); return Array.isArray(o) ? o : null; } catch { return null; }
+}
+function setPresetOrder(order: string[]) {
+  localStorage.setItem('radioPresetOrder', JSON.stringify(order));
+}
+function getPresetHidden(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem('radioPresetHidden') || '[]')); } catch { return new Set(); }
+}
+function setPresetHidden(hidden: Set<string>) {
+  localStorage.setItem('radioPresetHidden', JSON.stringify([...hidden]));
+}
+
 function RadioSection() {
   const radioAudioRef = useRef<HTMLAudioElement>(null);
   const [radioFilter, setRadioFilter] = useState('all');
@@ -4495,6 +5494,25 @@ function RadioSection() {
   const [stDescription, setStDescription] = useState('');
   const [radioTab, setRadioTab] = useState<'preset' | 'custom'>('preset');
   const [editingStation, setEditingStation] = useState<Record<string, unknown> | null>(null);
+
+  // Preset station preferences
+  const [presetHidden, setPresetHidden] = useState<Set<string>>(getPresetHidden);
+  const [presetStations, setPresetStations] = useState<typeof RADIO_STATIONS>(() => {
+    const order = getPresetOrder();
+    if (order) {
+      const ordered: typeof RADIO_STATIONS = [];
+      const remaining = [...RADIO_STATIONS];
+      for (const id of order) {
+        const s = remaining.find(st => st.id === id);
+        if (s) { ordered.push(s); remaining.splice(remaining.indexOf(s), 1); }
+      }
+      return [...ordered, ...remaining];
+    }
+    return [...RADIO_STATIONS];
+  });
+
+  // Sync preset hidden to localStorage
+  useEffect(() => { setPresetHidden(presetHidden); }, [presetHidden]);
 
   // Radio audio control
   useEffect(() => {
@@ -4511,7 +5529,7 @@ function RadioSection() {
     radioAudioRef.current.volume = radioVolume;
   }, [radioVolume]);
 
-  // ── Custom Stations ──
+  // ── Custom Stations (loaded always so preset favorites can be derived) ──
   const loadCustomStations = useCallback(async () => {
     try {
       const res = await fetch('/api/radio/stations');
@@ -4519,18 +5537,8 @@ function RadioSection() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => {
-    if (radioTab !== 'custom') return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch('/api/radio/stations');
-        if (res.ok && !cancelled) { const data = await res.json(); setCustomStations(data.stations || []); }
-      } catch { /* ignore */ }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [radioTab]);
+  // Load custom stations on mount and when switching to custom tab
+  useEffect(() => { loadCustomStations(); }, [loadCustomStations]);
 
   const createStation = async () => {
     if (!stName.trim() || !stUrl.trim()) return;
@@ -4582,6 +5590,109 @@ function RadioSection() {
     } catch { toast.error('Error de conexión'); }
   };
 
+  const toggleFavorite = async (station: Record<string, unknown>) => {
+    const newFav = !station.isFavorite;
+    try {
+      const res = await fetch(`/api/radio/stations/${station.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFavorite: newFav }),
+      });
+      if (res.ok) {
+        setCustomStations((prev) => prev.map((s) => s.id === station.id ? { ...s, isFavorite: newFav } : s));
+        toast.success(newFav ? 'Marcada como favorita' : 'Quitada de favoritas');
+      }
+    } catch { toast.error('Error al actualizar'); }
+  };
+
+  const reorderStation = async (id: string, newOrder: number) => {
+    try {
+      const res = await fetch(`/api/radio/stations/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: newOrder }),
+      });
+      if (!res.ok) toast.error('Error al reordenar');
+    } catch { /* ignore */ }
+  };
+
+  // ── Preset Station Actions ──
+  // Derive which presets are favorited (exist in Mis Emisoras) by matching URL
+  const customStationUrls = new Set(customStations.map((s) => String(s.url)));
+  const isPresetFavorited = (station: typeof RADIO_STATIONS[number]) => customStationUrls.has(station.url);
+
+  // Find custom station ID that matches a preset station by URL
+  const findCustomMatch = (station: typeof RADIO_STATIONS[number]) =>
+    customStations.find((s) => String(s.url) === station.url);
+
+  const togglePresetFavorite = async (station: typeof RADIO_STATIONS[number]) => {
+ const existing = findCustomMatch(station);
+    if (existing) {
+      // Already in Mis Emisoras → remove it
+      try {
+        const res = await fetch(`/api/radio/stations/${existing.id}`, { method: 'DELETE' });
+        if (res.ok) {
+          toast.success(`"${station.name}" quitada de Mis Emisoras`);
+          loadCustomStations();
+        }
+      } catch { toast.error('Error al eliminar'); }
+    } else {
+      // Not in Mis Emisoras → add it as favorite
+      try {
+        const res = await fetch('/api/radio/stations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: station.name, url: station.url, genre: station.genre || null, country: station.country || null, isFavorite: true }),
+        });
+        if (res.ok) {
+          toast.success(`"${station.name}" agregada a Mis Emisoras`);
+          loadCustomStations();
+        }
+      } catch { toast.error('Error al agregar'); }
+    }
+  };
+
+  const hidePresetStation = (stationId: string) => {
+    setPresetHidden((prev) => {
+      const next = new Set(prev);
+      next.add(stationId);
+      return next;
+    });
+    toast.success('Emisora oculta de la lista');
+  };
+
+  // ── DnD Sensors ──
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handlePresetDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setPresetStations((prev) => {
+      const oldIndex = prev.findIndex((s) => s.id === active.id);
+      const newIndex = prev.findIndex((s) => s.id === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const moved = arrayMove(prev, oldIndex, newIndex);
+      setPresetOrder(moved.map((s) => s.id));
+      return moved;
+    });
+  };
+
+  const handleCustomDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setCustomStations((prev) => {
+      const oldIndex = prev.findIndex((s) => String(s.id) === active.id);
+      const newIndex = prev.findIndex((s) => String(s.id) === over.id);
+      if (oldIndex === -1 || newIndex === -1) return prev;
+      const moved = arrayMove(prev, oldIndex, newIndex);
+      moved.forEach((s, i) => { reorderStation(String(s.id), i); });
+      return moved;
+    });
+  };
+
   const toggleRadioStation = (station: { id: string; name: string; genre: string; url: string; country: string }) => {
     if (radioStation?.id === station.id) {
       setRadioPlaying(!radioPlaying);
@@ -4592,7 +5703,8 @@ function RadioSection() {
   };
 
   const radioGenres = ['all', ...Array.from(new Set(RADIO_STATIONS.map(s => s.genre)))];
-  const filteredStations = radioFilter === 'all' ? RADIO_STATIONS : RADIO_STATIONS.filter(s => s.genre === radioFilter);
+  const visiblePresetStations = presetStations.filter((s) => !presetHidden.has(s.id));
+  const filteredStations = radioFilter === 'all' ? visiblePresetStations : visiblePresetStations.filter(s => s.genre === radioFilter);
 
   return (
     <div className="space-y-4">
@@ -4652,54 +5764,52 @@ function RadioSection() {
             {genre === 'all' ? 'Todos' : genre}
           </Button>
         ))}
+        {presetHidden.size > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs text-muted-foreground"
+            onClick={() => { setPresetHidden(new Set()); toast.success('Emisoras ocultas restauradas'); }}
+          >
+            <Eye className="h-3 w-3 mr-1" />Mostrar ocultas ({presetHidden.size})
+          </Button>
+        )}
       </div>
 
-      {/* Station Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {filteredStations.map((station) => {
-          const isActive = radioStation?.id === station.id;
-          return (
-            <Card
-              key={station.id}
-              className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${
-                isActive ? 'border-2 border-violet-400 bg-violet-50/50 dark:bg-violet-950/10' : 'hover:border-violet-200 dark:hover:border-violet-800'
-              }`}
-              onClick={() => toggleRadioStation(station)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                    isActive && radioPlaying
-                      ? 'bg-violet-500 text-white'
-                      : 'bg-muted'
-                  }`}>
-                    {isActive && radioPlaying ? (
-                      <div className="flex items-end gap-[2px] h-3">
-                        <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '60%' }} />
-                        <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                        <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
-                      </div>
-                    ) : (
-                      <Headphones className="h-5 w-5 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{station.name}</p>
-                    <p className="text-xs text-muted-foreground">{station.genre} · {station.country}</p>
-                  </div>
-                  <Button
-                    variant={isActive && radioPlaying ? 'default' : 'outline'}
-                    size="icon"
-                    className={`h-8 w-8 flex-shrink-0 ${isActive && radioPlaying ? 'bg-violet-600 hover:bg-violet-700' : ''}`}
-                  >
-                    {isActive && radioPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      {/* Preset Station Grid with DnD */}
+      {filteredStations.length === 0 ? (
+        <Card className="border-dashed border-2">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Radio className="h-12 w-12 text-muted-foreground/30 mb-3" />
+            <p className="font-medium mb-1">No hay emisoras</p>
+            <p className="text-sm text-muted-foreground">
+              {radioFilter !== 'all' ? `No hay emisoras del género "${radioFilter}"` : 'Todas las emisoras están ocultas'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePresetDragEnd}>
+          <SortableContext items={filteredStations.map((s) => s.id)} strategy={rectSortingStrategy}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredStations.map((station) => {
+                const isActive = radioStation?.id === station.id;
+                return (
+                  <SortablePresetCard
+                    key={station.id}
+                    station={station}
+                    isActive={isActive}
+                    radioPlaying={radioPlaying}
+                    isFavorite={isPresetFavorited(station)}
+                    onPlay={() => toggleRadioStation(station)}
+                    onToggleFavorite={() => togglePresetFavorite(station)}
+                    onHide={() => hidePresetStation(station.id)}
+                  />
+                );
+              })}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
       </>)}
 
       {radioTab === 'custom' && (
@@ -4719,48 +5829,31 @@ function RadioSection() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {customStations.map((station) => {
-                const isActive = radioStation?.id === station.id;
-                const stationData = { id: String(station.id), name: String(station.name), genre: String(station.genre || ''), url: String(station.url), country: String(station.country || '') };
-                return (
-                  <Card key={String(station.id)} className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${isActive ? 'border-2 border-violet-400 bg-violet-50/50 dark:bg-violet-950/10' : 'hover:border-violet-200'}`} onClick={() => {
-                    if (isActive) setRadioPlaying(!radioPlaying);
-                    else { setRadioStation(stationData); setRadioPlaying(true); }
-                  }}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive && radioPlaying ? 'bg-violet-500 text-white' : 'bg-muted'}`}>
-                          {isActive && radioPlaying ? (
-                            <div className="flex items-end gap-[2px] h-3">
-                              <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '60%' }} />
-                              <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
-                              <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
-                            </div>
-                          ) : <Headphones className="h-5 w-5 text-muted-foreground" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{String(station.name)}</p>
-                          <p className="text-xs text-muted-foreground">{station.genre ? `${String(station.genre)} · ` : ''}{station.country || ''}</p>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {station.isFavorite && <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />}
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditStationDialog(station); }} title="Editar">
-                            <Edit className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={(e) => { e.stopPropagation(); deleteStation(String(station.id)); }} title="Eliminar">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant={isActive && radioPlaying ? 'default' : 'outline'} size="icon" className={`h-8 w-8 ${isActive && radioPlaying ? 'bg-violet-600' : ''}`}>
-                            {isActive && radioPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCustomDragEnd}>
+              <SortableContext items={customStations.map((s) => String(s.id))} strategy={rectSortingStrategy}>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {customStations.map((station) => {
+                    const isActive = radioStation?.id === station.id;
+                    const stationData = { id: String(station.id), name: String(station.name), genre: String(station.genre || ''), url: String(station.url), country: String(station.country || '') };
+                    return (
+                      <SortableStationCard
+                        key={String(station.id)}
+                        station={station}
+                        isActive={isActive}
+                        radioPlaying={radioPlaying}
+                        onPlay={() => {
+                          if (isActive) setRadioPlaying(!radioPlaying);
+                          else { setRadioStation(stationData); setRadioPlaying(true); }
+                        }}
+                        onToggleFavorite={() => toggleFavorite(station)}
+                        onEdit={() => openEditStationDialog(station)}
+                        onDelete={() => deleteStation(String(station.id))}
+                      />
+                    );
+                  })}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </div>
       )}
@@ -4999,6 +6092,7 @@ function AppContent() {
     music: 'Música',
     radio: 'Radio',
     movies: 'Películas',
+    tvshows: 'TV Shows',
     printers: 'Impresora',
     library: 'Biblioteca',
     images: 'Imágenes',
@@ -5030,6 +6124,7 @@ function AppContent() {
           {currentSection === 'music' && <MusicSection />}
           {currentSection === 'radio' && <RadioSection />}
           {currentSection === 'movies' && <MoviesSection />}
+          {currentSection === 'tvshows' && <TvShowsSection />}
           {currentSection === 'images' && <ImagesSection />}
           {currentSection === 'printers' && <PrinterSection />}
         </main>

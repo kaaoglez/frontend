@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type Section = 'dashboard' | 'disks' | 'library' | 'music' | 'radio' | 'movies' | 'images' | 'printers';
+export type Section = 'dashboard' | 'disks' | 'library' | 'music' | 'radio' | 'movies' | 'tvshows' | 'images' | 'printers';
 
 export interface MediaItem {
   name: string;
@@ -169,6 +169,16 @@ interface AppState {
   currentMovie: MediaItem | null;
   setCurrentMovie: (movie: MediaItem | null) => void;
 
+  // TV Shows
+  tvshowBasePath: string;
+  setTvshowBasePath: (path: string) => void;
+  tvshowLibraryPaths: string[];
+  setTvshowLibraryPaths: (paths: string[]) => void;
+  tvshowCurrentPath: string;
+  setTvshowCurrentPath: (path: string) => void;
+  tvshowPathHistory: string[];
+  setTvshowPathHistory: (history: string[]) => void;
+
   // Radio
   radioStation: { id: string; name: string; genre: string; url: string; country: string } | null;
   setRadioStation: (station: { id: string; name: string; genre: string; url: string; country: string } | null) => void;
@@ -265,6 +275,16 @@ export const useAppStore = create<AppState>((set) => ({
   setMoviePathHistory: (history) => set({ moviePathHistory: history }),
   currentMovie: null,
   setCurrentMovie: (movie) => set({ currentMovie: movie }),
+
+  // TV Shows
+  tvshowBasePath: '/home/z',
+  setTvshowBasePath: (path) => set({ tvshowBasePath: path }),
+  tvshowLibraryPaths: ['/mnt/Canal', '/mnt/Tools'],
+  setTvshowLibraryPaths: (paths) => set({ tvshowLibraryPaths: paths }),
+  tvshowCurrentPath: '/home/z',
+  setTvshowCurrentPath: (path) => set({ tvshowCurrentPath: path }),
+  tvshowPathHistory: ['/home/z'],
+  setTvshowPathHistory: (history) => set({ tvshowPathHistory: history }),
 
   // Radio
   radioStation: null,
