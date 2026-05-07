@@ -2,7 +2,7 @@
 - Local:         http://localhost:8080
 - Network:       http://192.168.3.2:8080
 - Environments: .env
-✓ Ready in 573ms
+✓ Ready in 576ms
 ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
  We detected multiple lockfiles and selected the directory of /home/osmany/package-lock.json as the root directory.
  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
@@ -10,288 +10,236 @@
  Detected additional lockfiles: 
    * /home/osmany/frontend/package-lock.json
 
-⚠ Slow filesystem detected. The benchmark took 298ms. If /home/osmany/frontend/.next/dev is a network drive, consider moving it to a local folder.
+⚠ Slow filesystem detected. The benchmark took 312ms. If /home/osmany/frontend/.next/dev is a network drive, consider moving it to a local folder.
 See more: https://nextjs.org/docs/app/guides/local-development
 
- GET / 200 in 801ms (next.js: 284ms, application-code: 516ms)
- GET /api/server-stats 200 in 186ms (next.js: 134ms, application-code: 52ms)
+⨯ ./frontend/src/app/page.tsx:1:5
+Expected ';', '}' or <eof>
+[31m[1m>[0m [90m1 |[0m use client[32m';[0m
+  [90m  |[0m     [31m[1m^^^^^^[0m
+  [90m2 |[0m
+  [90m3 |[0m [32mimport { useState, useEffect, useCallback, useRef } from '[0mreact[32m';[0m
+  [90m4 |[0m [32mimport { useAppStore, type Section, type FileItem, type MediaItem, type PrintJob, type PrinterInfo, type ServerStats } from '[0m@/lib/store[32m';[0m
+
+Parsing ecmascript source code failed
+
+
+ GET / 500 in 291ms (next.js: 126ms, application-code: 166ms)
+[browser] Uncaught Error: ./frontend/src/app/page.tsx:1:5
+Expected ';', '}' or <eof>
+> 1 | use client';
+    |     ^^^^^^
+  2 |
+  3 | import { useState, useEffect, useCallback, useRef } from 'react';
+  4 | import { useAppStore, type Section, type FileItem, type MediaItem, type PrintJob, type PrinterInfo, type ServerStats } from '@/lib/store';
+
+Parsing ecmascript source code failed
+
+
+    at <unknown> (Error: ./frontend/src/app/page.tsx:1:5)
+    at <unknown> (Error: (./frontend/src/app/page.tsx:1:5)
+[browser] ./frontend/src/app/page.tsx:1:5
+Expected ';', '}' or <eof>
+> 1 | use client';
+    |     ^^^^^^
+  2 |
+  3 | import { useState, useEffect, useCallback, useRef } from 'react';
+  4 | import { useAppStore, type Section, type FileItem, type MediaItem, type PrintJob, type PrinterInfo, type ServerStats } from '@/lib/store';
+
+Parsing ecmascript source code failed 
+[browser] ./frontend/src/app/page.tsx:1:5
+Expected ';', '}' or <eof>
+> 1 | use client';
+    |     ^^^^^^
+  2 |
+  3 | import { useState, useEffect, useCallback, useRef } from 'react';
+  4 | import { useAppStore, type Section, type FileItem, type MediaItem, type PrintJob, type PrinterInfo, type ServerStats } from '@/lib/store';
+
+Parsing ecmascript source code failed 
+[browser] ./frontend/src/app/page.tsx:1:5
+Expected ';', '}' or <eof>
+> 1 | use client';
+    |     ^^^^^^
+  2 |
+  3 | import { useState, useEffect, useCallback, useRef } from 'react';
+  4 | import { useAppStore, type Section, type FileItem, type MediaItem, type PrintJob, type PrinterInfo, type ServerStats } from '@/lib/store';
+
+Parsing ecmascript source code failed 
+ GET / 200 in 951ms (next.js: 355ms, application-code: 595ms)
+ GET / 200 in 293ms (next.js: 100ms, application-code: 193ms)
+ GET /api/server-stats 200 in 154ms (next.js: 100ms, application-code: 53ms)
 prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
 prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
 prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
- GET /api/dashboard/stats 200 in 2.1s (next.js: 271ms, application-code: 1804ms)
+ GET /api/dashboard/stats 200 in 2.1s (next.js: 235ms, application-code: 1834ms)
 prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
 prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
- GET /api/news 200 in 819ms (next.js: 63ms, application-code: 756ms)
- GET /api/media/stream?path=%2Fhome%2Fz&type=video 404 in 75ms (next.js: 65ms, application-code: 10ms)
- GET /api/settings?key=movieLibraryPaths 200 in 132ms (next.js: 119ms, application-code: 12ms)
- GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 31ms (next.js: 4ms, application-code: 28ms)
- GET /api/movies/bookmarks 200 in 82ms (next.js: 63ms, application-code: 18ms)
+ GET /api/news 200 in 599ms (next.js: 40ms, application-code: 559ms)
+ GET /api/printers 200 in 388ms (next.js: 117ms, application-code: 271ms)
+prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/printers/jobs 200 in 390ms (next.js: 66ms, application-code: 324ms)
+ DELETE /api/printers/jobs 200 in 205ms (next.js: 6ms, application-code: 199ms)
+prisma:query DELETE FROM `main`.`PrintJob` WHERE 1=1
+ GET /api/printers 200 in 287ms (next.js: 18ms, application-code: 269ms)
+ GET /api/printers/jobs 200 in 293ms (next.js: 14ms, application-code: 280ms)
+prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/printers 200 in 190ms (next.js: 9ms, application-code: 181ms)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/printers/jobs 200 in 211ms (next.js: 196ms, application-code: 14ms)
+ GET /api/printers 200 in 287ms (next.js: 8ms, application-code: 278ms)
+prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/printers/jobs 200 in 304ms (next.js: 292ms, application-code: 12ms)
+ GET /api/media/stream?path=%2Fhome%2Fz&type=video 404 in 144ms (next.js: 137ms, application-code: 8ms)
+ GET /api/settings?key=movieLibraryPaths 200 in 152ms (next.js: 80ms, application-code: 73ms)
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 35ms (next.js: 3ms, application-code: 32ms)
+prisma:query SELECT 1
+ GET /api/movies/bookmarks 200 in 82ms (next.js: 67ms, application-code: 16ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/media/stream?path=%2Fhome%2Fz&type=audio 404 in 15ms (next.js: 7ms, application-code: 8ms)
+ GET /api/settings?key=musicLibraryPaths 200 in 29ms (next.js: 17ms, application-code: 11ms)
+ GET /api/media/stream?path=%2Fmnt%2FTools%2FMusic&type=audio 200 in 37ms (next.js: 4ms, application-code: 33ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2F%5Bnextorrent.com%5D%207Os8Os9Os 200 in 79ms (next.js: 69ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FAerosmith%20-%201973%20-%20Aerosmith%20(Legendary%20Expanded%20Edition%202026)%20(24bit-48kHz) 200 in 15ms (next.js: 4ms, application-code: 11ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FAnd%20The%20-%20Legendary%20Guitar%20Solos(2020)(POP) 200 in 12ms (next.js: 4ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FBee%20Gees%20-%20Essentials%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FBilly%20Joel%20-%20Greatest%20Hits%20%5BUltimate%5D%202CD%20Set%20With%20%5BCovers%5D%20%5BBubanee%5D 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FClasica 200 in 15ms (next.js: 5ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FClassic%20Rock%20Music%20-%20Compilation%20Mix%20-%20Playlist 200 in 13ms (next.js: 5ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEd%20Sheeran%20-%20Essentials%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20Micha 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20tiger 200 in 8ms (next.js: 2ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEminem%20-%20Best%20Of%20The%20Best%20(2018)%20Mp3%20Album%20320%20kbps%20Quality%20%5BPMEDIA%5D 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEric%20Clapton%20Unplugged%20Deluxe%20Edition 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FFito%20P%C3%A1ez 200 in 9ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FGuns%20N%27%20Roses%20-%20Greatest%20Hits%20(2004)%20%20%5BMP3%20320%5D%2088 200 in 10ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FGuns%20N%27%20Roses%20-%20Greatest%20Hits%20Live%20Broadcast%20Collection%20(2025)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJames%20Blunt%20-%20Once%20Upon%20A%20Mind%20(2019)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJazz%20Erotic%20Lounge%20Collective%20-%20Erotic%20Day%20in%20Bedroom_%20Sensual%20Background%20Music%20for%20Making%20Love%20(2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20greatest%20hits.%5BiDN_CreW%5D 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20Mind%20Games%20(The%20Ultimate%20Collection)%20(2024)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20the%20Gang 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%201 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%202 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20The%20Gang%20Icon%20Greatest%20Hits%20%5BBubanee%5D 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2Flatinos 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLed%20Zeppelin%20-%20Greatest%20Hits%20(2008)%20%5BMP3%20320%5D%2088 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLed%20Zeppelin%20-%20Greatest%20Hits%20Live%20Broadcast%20Collection%20(2025)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLenny%20Kravitz%20-%20Blue%20Electric%20Light%20%20(2024)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLionel%20Richie%20greatest%20hits%20(1) 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMadonna%20-%20Essentials%20(2019) 200 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FManu%20Chao%20-%20La%20Radiolina%20%5BMP3%40320%5D%20%5Bpastafari%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20-%20Discography%20%5BStudio%5D%201979%20To%202001%20%5BBubanee%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20GREATEST%20HITS 200 in 11ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMusiquit 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPablo%20Milanes%20-%20Grandes%20Exitos%201995 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPhil%20Collins%20-%20Essentials%20(2022)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPhil%20Collins-Greatest.Hits.2010.www.lokotorrents.com 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPlay%20list 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FQueen%20-%20Greatest%20Hits%20I%2C%20II%20%26%20III%20(The%20Platinum%20Collection)%20%5B3CD%20Box%20Set%5D%202014%20MP3 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRammstein%20-%20Essentials%20(2018) 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRap 200 in 11ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRed%20Hot%20Chili%20Peppers%20-%20Discography%201984-2022%20%5BMp3%20320%5D%20vtwin88cube 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRed%20Hot%20Chili%20Peppers%20-%20Unlimited%20Love%20(2022)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FReparto 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRoberto%20Carlos%20-%2040%20Grandes%20Exitos 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2Fromantico 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FSilvio%20Rodriguez%20(Cuba) 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FSnoop%20Dogg%20-%2010%20Til%27%20Midnight%20(2026%20Hip%20Hop%20Rap)%20%5BFlac%2024-44%5D 200 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20-%20Anthology%20Collection%20(2025)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20%5B2009%5D%20Greatest%20Hits%20CDRip%20%5BRemastered%5D%5BBubanee%5D 200 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Rolling%20Stones%20-%20Discography%201964-2023%20%5BMP3%20320%5D%2088 200 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Rolling%20Stones%20-%20Hackney%20Diamonds%20(2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 8ms (next.js: 2ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FTop%20100%20DJs%20Chart%20(27-January-2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20100%20Greatest%20Rock%20Songs%20Ever%20(Mp3%20320kbps%20Quality)%20%5BPMEDIA%5D 200 in 8ms (next.js: 3ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%2060%20Minutes%20Relaxing%20Music(2016)(POP) 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20The%20Best%2080s%20Car%20Songs%20Album%20In%20The%20World%20Ever%20(3CD)%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20VH1%20100%20Greatest%20Hard%20Rock%20Songs%20(2020) 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVarious%20Artists%20-%20Trending%20Pop%20(2025)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FWillie%20Nelson%20-%20Greatest%20Songs%20(2018)%20Mp3%20320kbps%20Quality%20Songs 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 95ms (next.js: 7ms, application-code: 88ms)
+ GET /api/settings?key=movieLibraryPaths 200 in 108ms (next.js: 97ms, application-code: 10ms)
+prisma:query SELECT 1
+ GET /api/movies/bookmarks 200 in 15ms (next.js: 4ms, application-code: 11ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/media/stream?path=%2Fmnt%2FTools%2FMusic&type=audio 200 in 45ms (next.js: 5ms, application-code: 40ms)
+ GET /api/settings?key=musicLibraryPaths 200 in 57ms (next.js: 47ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FClasica 200 in 14ms (next.js: 4ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20Micha 200 in 15ms (next.js: 3ms, application-code: 11ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20tiger 200 in 12ms (next.js: 4ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEric%20Clapton%20Unplugged%20Deluxe%20Edition 200 in 14ms (next.js: 4ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FFito%20P%C3%A1ez 200 in 15ms (next.js: 5ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJames%20Blunt%20-%20Once%20Upon%20A%20Mind%20(2019)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 14ms (next.js: 6ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJazz%20Erotic%20Lounge%20Collective%20-%20Erotic%20Day%20in%20Bedroom_%20Sensual%20Background%20Music%20for%20Making%20Love%20(2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 14ms (next.js: 3ms, application-code: 11ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20greatest%20hits.%5BiDN_CreW%5D 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20Mind%20Games%20(The%20Ultimate%20Collection)%20(2024)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 13ms (next.js: 4ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20the%20Gang 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%201 200 in 12ms (next.js: 4ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%202 200 in 15ms (next.js: 5ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20The%20Gang%20Icon%20Greatest%20Hits%20%5BBubanee%5D 200 in 13ms (next.js: 4ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2Flatinos 200 in 11ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLionel%20Richie%20greatest%20hits%20(1) 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FManu%20Chao%20-%20La%20Radiolina%20%5BMP3%40320%5D%20%5Bpastafari%5D 200 in 13ms (next.js: 4ms, application-code: 10ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20-%20Discography%20%5BStudio%5D%201979%20To%202001%20%5BBubanee%5D 200 in 14ms (next.js: 5ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20GREATEST%20HITS 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMusiquit 200 in 12ms (next.js: 3ms, application-code: 9ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPhil%20Collins-Greatest.Hits.2010.www.lokotorrents.com 200 in 12ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPlay%20list 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FQueen%20-%20Greatest%20Hits%20I%2C%20II%20%26%20III%20(The%20Platinum%20Collection)%20%5B3CD%20Box%20Set%5D%202014%20MP3 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRap 200 in 11ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRed%20Hot%20Chili%20Peppers%20-%20Discography%201984-2022%20%5BMp3%20320%5D%20vtwin88cube 200 in 12ms (next.js: 3ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FReparto 200 in 17ms (next.js: 5ms, application-code: 12ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRoberto%20Carlos%20-%2040%20Grandes%20Exitos 200 in 20ms (next.js: 7ms, application-code: 13ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FSilvio%20Rodriguez%20(Cuba) 200 in 13ms (next.js: 4ms, application-code: 8ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20-%20Anthology%20Collection%20(2025)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20%5B2009%5D%20Greatest%20Hits%20CDRip%20%5BRemastered%5D%5BBubanee%5D 200 in 7ms (next.js: 2ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Rolling%20Stones%20-%20Discography%201964-2023%20%5BMP3%20320%5D%2088 200 in 8ms (next.js: 2ms, application-code: 5ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FTop%20100%20DJs%20Chart%20(27-January-2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 8ms (next.js: 2ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%2060%20Minutes%20Relaxing%20Music(2016)(POP) 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20The%20Best%2080s%20Car%20Songs%20Album%20In%20The%20World%20Ever%20(3CD)%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 9ms (next.js: 3ms, application-code: 6ms)
+ GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20VH1%20100%20Greatest%20Hard%20Rock%20Songs%20(2020) 200 in 10ms (next.js: 3ms, application-code: 7ms)
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 94ms (next.js: 5ms, application-code: 89ms)
+ GET /api/settings?key=movieLibraryPaths 200 in 105ms (next.js: 95ms, application-code: 10ms)
+ GET /api/movies/bookmarks 200 in 16ms (next.js: 4ms, application-code: 12ms)
+prisma:query SELECT 1
 prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
 prisma:query SELECT 1
 prisma:query INSERT INTO `main`.`MovieBookmark` (`id`, `tmdbId`, `title`, `originalTitle`, `overview`, `posterPath`, `backdropPath`, `releaseDate`, `voteAverage`, `genreIds`, `streamingUrl`, `notes`, `status`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `tmdbId` AS `tmdbId`, `title` AS `title`, `originalTitle` AS `originalTitle`, `overview` AS `overview`, `posterPath` AS `posterPath`, `backdropPath` AS `backdropPath`, `releaseDate` AS `releaseDate`, `voteAverage` AS `voteAverage`, `genreIds` AS `genreIds`, `streamingUrl` AS `streamingUrl`, `notes` AS `notes`, `status` AS `status`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
- POST /api/movies/bookmarks 201 in 249ms (next.js: 8ms, application-code: 241ms)
+ POST /api/movies/bookmarks 201 in 218ms (next.js: 4ms, application-code: 214ms)
 prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/movies/bookmarks 200 in 14ms (next.js: 5ms, application-code: 9ms)
- GET /api/radio/stations 200 in 96ms (next.js: 79ms, application-code: 17ms)
+ GET /api/movies/bookmarks 200 in 12ms (next.js: 4ms, application-code: 8ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`name`, `main`.`RadioStation`.`url`, `main`.`RadioStation`.`genre`, `main`.`RadioStation`.`country`, `main`.`RadioStation`.`description`, `main`.`RadioStation`.`faviconUrl`, `main`.`RadioStation`.`isFavorite`, `main`.`RadioStation`.`order`, `main`.`RadioStation`.`createdAt`, `main`.`RadioStation`.`updatedAt` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` ASC, `main`.`RadioStation`.`createdAt` ASC LIMIT ? OFFSET ?
+prisma:query DELETE FROM `main`.`MovieBookmark` WHERE (`main`.`MovieBookmark`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `tmdbId` AS `tmdbId`, `title` AS `title`, `originalTitle` AS `originalTitle`, `overview` AS `overview`, `posterPath` AS `posterPath`, `backdropPath` AS `backdropPath`, `releaseDate` AS `releaseDate`, `voteAverage` AS `voteAverage`, `genreIds` AS `genreIds`, `streamingUrl` AS `streamingUrl`, `notes` AS `notes`, `status` AS `status`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ DELETE /api/movies/bookmarks/cmovso6px00006owx44chor70 200 in 1470ms (next.js: 1252ms, application-code: 217ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/movies/bookmarks 200 in 13ms (next.js: 4ms, application-code: 9ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`order` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` DESC LIMIT ? OFFSET ?
-prisma:query INSERT INTO `main`.`RadioStation` (`id`, `name`, `url`, `genre`, `country`, `description`, `faviconUrl`, `isFavorite`, `order`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `name` AS `name`, `url` AS `url`, `genre` AS `genre`, `country` AS `country`, `description` AS `description`, `faviconUrl` AS `faviconUrl`, `isFavorite` AS `isFavorite`, `order` AS `order`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
- POST /api/radio/stations 201 in 210ms (next.js: 5ms, application-code: 204ms)
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`name`, `main`.`RadioStation`.`url`, `main`.`RadioStation`.`genre`, `main`.`RadioStation`.`country`, `main`.`RadioStation`.`description`, `main`.`RadioStation`.`faviconUrl`, `main`.`RadioStation`.`isFavorite`, `main`.`RadioStation`.`order`, `main`.`RadioStation`.`createdAt`, `main`.`RadioStation`.`updatedAt` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` ASC, `main`.`RadioStation`.`createdAt` ASC LIMIT ? OFFSET ?
- GET /api/radio/stations 200 in 17ms (next.js: 5ms, application-code: 13ms)
- GET /api/books/scan?path=%2Fmnt%2FCanal 200 in 116ms (next.js: 85ms, application-code: 31ms)
- GET /api/settings?key=libraryLibraryPaths 200 in 120ms (next.js: 6ms, application-code: 114ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2F%24RECYCLE.BIN 200 in 63ms (next.js: 55ms, application-code: 9ms)
- GET /api/books/scan?path=%2Fmnt%2FTools%2FBooks 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FAOsmany%20128 200 in 11ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2F50%20Dark%20Psychology%20%26%20Manipulation%20Books%20Collection 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FBackgrounds 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FCalibre%20Library 200 in 8ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FClips 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FFine%20Woodworking%202025 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FDownload 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FMicrosoft%20Excel%20Step%20by%20Step%20(Office%202021%20and%20Microsoft%20365) 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FDownloads 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks%2FThe%20New%20York%20Times%20Best%20Sellers%20-%20April%2019%2C%202026 200 in 9ms (next.js: 2ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FEfectos 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FBooks 200 in 9ms (next.js: 4ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FExtra%20Elements%20(%20Footage%20) 200 in 15ms (next.js: 10ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FFont 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.000 200 in 7ms (next.js: 2ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.001 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.002 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2Ffound.003 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2Ficons 200 in 9ms (next.js: 2ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FImage 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FImagenes 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FInstagram 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FMaggazine 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FMovies 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FMusic 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FOh%20Q%20Musica 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FOlympic 200 in 12ms (next.js: 3ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FPicture 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2Fpropuestasmusicale 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FProyectos 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FSounds 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FState%20of%20Art 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FSubtitels 200 in 11ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FSystem%20Volume%20Information 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FVideos 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FCanal%2FYoly%20Bazar 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/media/stream?path=%2Fhome%2Fz&type=audio 404 in 17ms (next.js: 12ms, application-code: 6ms)
- GET /api/settings?key=musicLibraryPaths 200 in 22ms (next.js: 5ms, application-code: 17ms)
- GET /api/media/stream?path=%2Fmnt%2FTools%2FMusic&type=audio 200 in 41ms (next.js: 4ms, application-code: 37ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2F%5Bnextorrent.com%5D%207Os8Os9Os 200 in 14ms (next.js: 4ms, application-code: 10ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FAerosmith%20-%201973%20-%20Aerosmith%20(Legendary%20Expanded%20Edition%202026)%20(24bit-48kHz) 200 in 14ms (next.js: 4ms, application-code: 11ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FAnd%20The%20-%20Legendary%20Guitar%20Solos(2020)(POP) 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FBee%20Gees%20-%20Essentials%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FBilly%20Joel%20-%20Greatest%20Hits%20%5BUltimate%5D%202CD%20Set%20With%20%5BCovers%5D%20%5BBubanee%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FClasica 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FClassic%20Rock%20Music%20-%20Compilation%20Mix%20-%20Playlist 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEd%20Sheeran%20-%20Essentials%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20Micha 200 in 12ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20tiger 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEminem%20-%20Best%20Of%20The%20Best%20(2018)%20Mp3%20Album%20320%20kbps%20Quality%20%5BPMEDIA%5D 200 in 16ms (next.js: 8ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEric%20Clapton%20Unplugged%20Deluxe%20Edition 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FFito%20P%C3%A1ez 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FGuns%20N%27%20Roses%20-%20Greatest%20Hits%20(2004)%20%20%5BMP3%20320%5D%2088 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FGuns%20N%27%20Roses%20-%20Greatest%20Hits%20Live%20Broadcast%20Collection%20(2025)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJames%20Blunt%20-%20Once%20Upon%20A%20Mind%20(2019)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 12ms (next.js: 3ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJazz%20Erotic%20Lounge%20Collective%20-%20Erotic%20Day%20in%20Bedroom_%20Sensual%20Background%20Music%20for%20Making%20Love%20(2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20greatest%20hits.%5BiDN_CreW%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20Mind%20Games%20(The%20Ultimate%20Collection)%20(2024)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20the%20Gang 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%201 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%202 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20The%20Gang%20Icon%20Greatest%20Hits%20%5BBubanee%5D 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2Flatinos 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLed%20Zeppelin%20-%20Greatest%20Hits%20(2008)%20%5BMP3%20320%5D%2088 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLed%20Zeppelin%20-%20Greatest%20Hits%20Live%20Broadcast%20Collection%20(2025)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLenny%20Kravitz%20-%20Blue%20Electric%20Light%20%20(2024)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLionel%20Richie%20greatest%20hits%20(1) 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMadonna%20-%20Essentials%20(2019) 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FManu%20Chao%20-%20La%20Radiolina%20%5BMP3%40320%5D%20%5Bpastafari%5D 200 in 12ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20-%20Discography%20%5BStudio%5D%201979%20To%202001%20%5BBubanee%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20GREATEST%20HITS 200 in 12ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMusiquit 200 in 12ms (next.js: 3ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPablo%20Milanes%20-%20Grandes%20Exitos%201995 200 in 12ms (next.js: 3ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPhil%20Collins%20-%20Essentials%20(2022)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 5ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPhil%20Collins-Greatest.Hits.2010.www.lokotorrents.com 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPlay%20list 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FQueen%20-%20Greatest%20Hits%20I%2C%20II%20%26%20III%20(The%20Platinum%20Collection)%20%5B3CD%20Box%20Set%5D%202014%20MP3 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRammstein%20-%20Essentials%20(2018) 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRap 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRed%20Hot%20Chili%20Peppers%20-%20Discography%201984-2022%20%5BMp3%20320%5D%20vtwin88cube 200 in 20ms (next.js: 7ms, application-code: 13ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRed%20Hot%20Chili%20Peppers%20-%20Unlimited%20Love%20(2022)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 15ms (next.js: 6ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FReparto 200 in 8ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRoberto%20Carlos%20-%2040%20Grandes%20Exitos 200 in 12ms (next.js: 3ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2Fromantico 200 in 11ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FSilvio%20Rodriguez%20(Cuba) 200 in 11ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FSnoop%20Dogg%20-%2010%20Til%27%20Midnight%20(2026%20Hip%20Hop%20Rap)%20%5BFlac%2024-44%5D 200 in 12ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20-%20Anthology%20Collection%20(2025)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20%5B2009%5D%20Greatest%20Hits%20CDRip%20%5BRemastered%5D%5BBubanee%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Rolling%20Stones%20-%20Discography%201964-2023%20%5BMP3%20320%5D%2088 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Rolling%20Stones%20-%20Hackney%20Diamonds%20(2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FTop%20100%20DJs%20Chart%20(27-January-2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20100%20Greatest%20Rock%20Songs%20Ever%20(Mp3%20320kbps%20Quality)%20%5BPMEDIA%5D 200 in 11ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%2060%20Minutes%20Relaxing%20Music(2016)(POP) 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20The%20Best%2080s%20Car%20Songs%20Album%20In%20The%20World%20Ever%20(3CD)%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20VH1%20100%20Greatest%20Hard%20Rock%20Songs%20(2020) 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVarious%20Artists%20-%20Trending%20Pop%20(2025)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FWillie%20Nelson%20-%20Greatest%20Songs%20(2018)%20Mp3%20320kbps%20Quality%20Songs 200 in 12ms (next.js: 4ms, application-code: 8ms)
+prisma:query INSERT INTO `main`.`MovieBookmark` (`id`, `tmdbId`, `title`, `originalTitle`, `overview`, `posterPath`, `backdropPath`, `releaseDate`, `voteAverage`, `genreIds`, `streamingUrl`, `notes`, `status`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `tmdbId` AS `tmdbId`, `title` AS `title`, `originalTitle` AS `originalTitle`, `overview` AS `overview`, `posterPath` AS `posterPath`, `backdropPath` AS `backdropPath`, `releaseDate` AS `releaseDate`, `voteAverage` AS `voteAverage`, `genreIds` AS `genreIds`, `streamingUrl` AS `streamingUrl`, `notes` AS `notes`, `status` AS `status`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/movies/bookmarks 201 in 213ms (next.js: 6ms, application-code: 208ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/movies/bookmarks 200 in 12ms (next.js: 4ms, application-code: 9ms)
+✓ Compiled in 486ms
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 84ms (next.js: 7ms, application-code: 77ms)
+ GET /api/settings?key=movieLibraryPaths 200 in 92ms (next.js: 85ms, application-code: 7ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`name`, `main`.`RadioStation`.`url`, `main`.`RadioStation`.`genre`, `main`.`RadioStation`.`country`, `main`.`RadioStation`.`description`, `main`.`RadioStation`.`faviconUrl`, `main`.`RadioStation`.`isFavorite`, `main`.`RadioStation`.`order`, `main`.`RadioStation`.`createdAt`, `main`.`RadioStation`.`updatedAt` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` ASC, `main`.`RadioStation`.`createdAt` ASC LIMIT ? OFFSET ?
- GET /api/radio/stations 200 in 18ms (next.js: 5ms, application-code: 12ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/movies/bookmarks 200 in 9ms (next.js: 2ms, application-code: 7ms)
+ GET /api/movies/bookmarks 200 in 18ms (next.js: 5ms, application-code: 13ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`order` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` DESC LIMIT ? OFFSET ?
-prisma:query INSERT INTO `main`.`RadioStation` (`id`, `name`, `url`, `genre`, `country`, `description`, `faviconUrl`, `isFavorite`, `order`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `name` AS `name`, `url` AS `url`, `genre` AS `genre`, `country` AS `country`, `description` AS `description`, `faviconUrl` AS `faviconUrl`, `isFavorite` AS `isFavorite`, `order` AS `order`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
- POST /api/radio/stations 201 in 215ms (next.js: 4ms, application-code: 211ms)
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`name`, `main`.`RadioStation`.`url`, `main`.`RadioStation`.`genre`, `main`.`RadioStation`.`country`, `main`.`RadioStation`.`description`, `main`.`RadioStation`.`faviconUrl`, `main`.`RadioStation`.`isFavorite`, `main`.`RadioStation`.`order`, `main`.`RadioStation`.`createdAt`, `main`.`RadioStation`.`updatedAt` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` ASC, `main`.`RadioStation`.`createdAt` ASC LIMIT ? OFFSET ?
- GET /api/radio/stations 200 in 15ms (next.js: 5ms, application-code: 10ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies%2FThe%20IT%20Crowd%20Complete%20Season%201-5%20DVDRip%20H264%20BONE&type=video 200 in 18ms (next.js: 5ms, application-code: 14ms)
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies%2FThe%20IT%20Crowd%20Complete%20Season%201-5%20DVDRip%20H264%20BONE%2FVersion%201.0&type=video 200 in 16ms (next.js: 4ms, application-code: 12ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`order` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` DESC LIMIT ? OFFSET ?
-prisma:query INSERT INTO `main`.`RadioStation` (`id`, `name`, `url`, `genre`, `country`, `description`, `faviconUrl`, `isFavorite`, `order`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `name` AS `name`, `url` AS `url`, `genre` AS `genre`, `country` AS `country`, `description` AS `description`, `faviconUrl` AS `faviconUrl`, `isFavorite` AS `isFavorite`, `order` AS `order`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
- POST /api/radio/stations 201 in 240ms (next.js: 4ms, application-code: 236ms)
-prisma:query SELECT `main`.`RadioStation`.`id`, `main`.`RadioStation`.`name`, `main`.`RadioStation`.`url`, `main`.`RadioStation`.`genre`, `main`.`RadioStation`.`country`, `main`.`RadioStation`.`description`, `main`.`RadioStation`.`faviconUrl`, `main`.`RadioStation`.`isFavorite`, `main`.`RadioStation`.`order`, `main`.`RadioStation`.`createdAt`, `main`.`RadioStation`.`updatedAt` FROM `main`.`RadioStation` WHERE 1=1 ORDER BY `main`.`RadioStation`.`order` ASC, `main`.`RadioStation`.`createdAt` ASC LIMIT ? OFFSET ?
- GET /api/radio/stations 200 in 15ms (next.js: 4ms, application-code: 11ms)
- GET /api/media/stream?path=%2Fmnt%2FTools%2FMusic&type=audio 200 in 45ms (next.js: 5ms, application-code: 40ms)
- GET /api/settings?key=musicLibraryPaths 200 in 56ms (next.js: 47ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FClasica 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20Micha 200 in 13ms (next.js: 3ms, application-code: 10ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEl%20tiger 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FEric%20Clapton%20Unplugged%20Deluxe%20Edition 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FFito%20P%C3%A1ez 200 in 14ms (next.js: 5ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJames%20Blunt%20-%20Once%20Upon%20A%20Mind%20(2019)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJazz%20Erotic%20Lounge%20Collective%20-%20Erotic%20Day%20in%20Bedroom_%20Sensual%20Background%20Music%20for%20Making%20Love%20(2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 13ms (next.js: 3ms, application-code: 10ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20greatest%20hits.%5BiDN_CreW%5D 200 in 11ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FJohn%20Lennon%20-%20Mind%20Games%20(The%20Ultimate%20Collection)%20(2024)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20the%20Gang 200 in 13ms (next.js: 5ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%201 200 in 13ms (next.js: 3ms, application-code: 10ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20And%20The%20Gang%20%E2%80%93%20Gold%20Disc%202 200 in 14ms (next.js: 4ms, application-code: 10ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FKool%20and%20The%20Gang%20Icon%20Greatest%20Hits%20%5BBubanee%5D 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2Flatinos 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FLionel%20Richie%20greatest%20hits%20(1) 200 in 13ms (next.js: 4ms, application-code: 10ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FManu%20Chao%20-%20La%20Radiolina%20%5BMP3%40320%5D%20%5Bpastafari%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20-%20Discography%20%5BStudio%5D%201979%20To%202001%20%5BBubanee%5D 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMICHAEL%20JACKSON%20GREATEST%20HITS 200 in 13ms (next.js: 6ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FMusiquit 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPhil%20Collins-Greatest.Hits.2010.www.lokotorrents.com 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FPlay%20list 200 in 19ms (next.js: 6ms, application-code: 12ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FQueen%20-%20Greatest%20Hits%20I%2C%20II%20%26%20III%20(The%20Platinum%20Collection)%20%5B3CD%20Box%20Set%5D%202014%20MP3 200 in 14ms (next.js: 5ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRap 200 in 8ms (next.js: 3ms, application-code: 5ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRed%20Hot%20Chili%20Peppers%20-%20Discography%201984-2022%20%5BMp3%20320%5D%20vtwin88cube 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FReparto 200 in 9ms (next.js: 3ms, application-code: 6ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FRoberto%20Carlos%20-%2040%20Grandes%20Exitos 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FSilvio%20Rodriguez%20(Cuba) 200 in 10ms (next.js: 3ms, application-code: 7ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20-%20Anthology%20Collection%20(2025)%20Mp3%20(320kbps)%20%5BHunter%5D 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Beatles%20%5B2009%5D%20Greatest%20Hits%20CDRip%20%5BRemastered%5D%5BBubanee%5D 200 in 12ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FThe%20Rolling%20Stones%20-%20Discography%201964-2023%20%5BMP3%20320%5D%2088 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FTop%20100%20DJs%20Chart%20(27-January-2023)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 12ms (next.js: 4ms, application-code: 9ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%2060%20Minutes%20Relaxing%20Music(2016)(POP) 200 in 12ms (next.js: 4ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20The%20Best%2080s%20Car%20Songs%20Album%20In%20The%20World%20Ever%20(3CD)%20(2021)%20Mp3%20320kbps%20%5BPMEDIA%5D%20%E2%AD%90%EF%B8%8F 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/music/cover?path=%2Fmnt%2FTools%2FMusic%2FVA%20-%20VH1%20100%20Greatest%20Hard%20Rock%20Songs%20(2020) 200 in 11ms (next.js: 3ms, application-code: 8ms)
- GET /api/printers 200 in 245ms (next.js: 121ms, application-code: 124ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/movies/bookmarks 200 in 15ms (next.js: 4ms, application-code: 10ms)
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies%2FThe%20IT%20Crowd%20Complete%20Season%201-5%20DVDRip%20H264%20BONE&type=video 200 in 16ms (next.js: 4ms, application-code: 12ms)
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 76ms (next.js: 4ms, application-code: 72ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 248ms (next.js: 63ms, application-code: 185ms)
- GET /api/printers 200 in 279ms (next.js: 12ms, application-code: 267ms)
- GET /api/printers/jobs 200 in 284ms (next.js: 5ms, application-code: 279ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 271ms (next.js: 4ms, application-code: 266ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/movies/bookmarks 200 in 13ms (next.js: 3ms, application-code: 9ms)
+✓ Compiled in 502ms
+ GET /api/media/stream?path=%2Fmnt%2FCanal%2FMovies&type=video 200 in 22ms (next.js: 4ms, application-code: 18ms)
+ GET /api/settings?key=movieLibraryPaths 200 in 9ms (next.js: 3ms, application-code: 6ms)
 prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/printers 200 in 176ms (next.js: 10ms, application-code: 165ms)
- GET /api/printers/jobs 200 in 180ms (next.js: 5ms, application-code: 176ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 122ms (next.js: 8ms, application-code: 114ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 133ms (next.js: 124ms, application-code: 9ms)
- GET /api/printers 200 in 278ms (next.js: 11ms, application-code: 266ms)
- GET /api/printers/jobs 200 in 283ms (next.js: 5ms, application-code: 278ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 274ms (next.js: 5ms, application-code: 269ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 287ms (next.js: 277ms, application-code: 10ms)
- GET /api/printers 200 in 169ms (next.js: 4ms, application-code: 164ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 182ms (next.js: 172ms, application-code: 10ms)
- GET /api/printers 200 in 273ms (next.js: 5ms, application-code: 268ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 287ms (next.js: 276ms, application-code: 11ms)
- GET /api/printers 200 in 273ms (next.js: 4ms, application-code: 269ms)
- GET /api/printers/jobs 200 in 15ms (next.js: 4ms, application-code: 11ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 121ms (next.js: 5ms, application-code: 116ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 132ms (next.js: 123ms, application-code: 9ms)
- GET /api/printers 200 in 169ms (next.js: 4ms, application-code: 165ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 13ms (next.js: 4ms, application-code: 9ms)
- GET /api/printers 200 in 169ms (next.js: 4ms, application-code: 165ms)
-prisma:query SELECT 1
- GET /api/printers/jobs 200 in 183ms (next.js: 174ms, application-code: 9ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 121ms (next.js: 7ms, application-code: 115ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 134ms (next.js: 123ms, application-code: 11ms)
- GET /api/printers 200 in 276ms (next.js: 8ms, application-code: 267ms)
- GET /api/printers/jobs 200 in 289ms (next.js: 278ms, application-code: 11ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 132ms (next.js: 15ms, application-code: 117ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 138ms (next.js: 7ms, application-code: 131ms)
- GET /api/printers 200 in 121ms (next.js: 6ms, application-code: 115ms)
-prisma:query SELECT 1
- GET /api/printers/jobs 200 in 15ms (next.js: 4ms, application-code: 11ms)
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 172ms (next.js: 5ms, application-code: 167ms)
- GET /api/printers/jobs 200 in 14ms (next.js: 4ms, application-code: 10ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers 200 in 123ms (next.js: 5ms, application-code: 118ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`PrintJob`.`id`, `main`.`PrintJob`.`fileName`, `main`.`PrintJob`.`filePath`, `main`.`PrintJob`.`printerName`, `main`.`PrintJob`.`status`, `main`.`PrintJob`.`copies`, `main`.`PrintJob`.`pages`, `main`.`PrintJob`.`submittedBy`, `main`.`PrintJob`.`createdAt`, `main`.`PrintJob`.`updatedAt` FROM `main`.`PrintJob` WHERE 1=1 ORDER BY `main`.`PrintJob`.`createdAt` DESC LIMIT ? OFFSET ?
- GET /api/printers/jobs 200 in 14ms (next.js: 4ms, application-code: 9ms)
- GET /api/server-stats 200 in 53ms (next.js: 14ms, application-code: 40ms)
-prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
-prisma:query SELECT 1
-prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
- GET /api/dashboard/stats 200 in 1949ms (next.js: 5ms, application-code: 1944ms)
- GET /api/news 200 in 625ms (next.js: 5ms, application-code: 621ms)
- GET /api/server-stats 200 in 46ms (next.js: 6ms, application-code: 39ms)
- GET /api/dashboard/stats 200 in 56ms (next.js: 49ms, application-code: 7ms)
- GET /api/server-stats 200 in 42ms (next.js: 5ms, application-code: 37ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
-prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT 1
-prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
- GET /api/dashboard/stats 200 in 1910ms (next.js: 45ms, application-code: 1866ms)
- GET /api/server-stats 200 in 44ms (next.js: 6ms, application-code: 38ms)
- GET /api/dashboard/stats 200 in 56ms (next.js: 49ms, application-code: 7ms)
- GET /api/server-stats 200 in 42ms (next.js: 7ms, application-code: 35ms)
-prisma:query SELECT 1
-prisma:query SELECT `main`.`Setting`.`key`, `main`.`Setting`.`value` FROM `main`.`Setting` WHERE `main`.`Setting`.`key` IN (?,?,?) LIMIT ? OFFSET ?
-prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT 1
-prisma:query SELECT COUNT(*) AS `_count$_all` FROM (SELECT `main`.`Book`.`id` FROM `main`.`Book` WHERE `main`.`Book`.`status` = ? LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT SUM(`pages`) AS `_sum$pages` FROM (SELECT `main`.`Book`.`pages` FROM `main`.`Book` WHERE 1=1 LIMIT ? OFFSET ?) AS `sub`
-prisma:query SELECT `main`.`Book`.`author` FROM `main`.`Book` WHERE 1=1 GROUP BY `main`.`Book`.`author` LIMIT ? OFFSET ?
- GET /api/dashboard/stats 200 in 2.0s (next.js: 43ms, application-code: 1958ms)
- GET /api/server-stats 200 in 44ms (next.js: 6ms, application-code: 38ms)
- GET /api/dashboard/stats 200 in 56ms (next.js: 49ms, application-code: 7ms)
+ GET /api/movies/bookmarks 200 in 9ms (next.js: 3ms, application-code: 6ms)
+prisma:query SELECT `main`.`MovieBookmark`.`id`, `main`.`MovieBookmark`.`tmdbId`, `main`.`MovieBookmark`.`title`, `main`.`MovieBookmark`.`originalTitle`, `main`.`MovieBookmark`.`overview`, `main`.`MovieBookmark`.`posterPath`, `main`.`MovieBookmark`.`backdropPath`, `main`.`MovieBookmark`.`releaseDate`, `main`.`MovieBookmark`.`voteAverage`, `main`.`MovieBookmark`.`genreIds`, `main`.`MovieBookmark`.`streamingUrl`, `main`.`MovieBookmark`.`notes`, `main`.`MovieBookmark`.`status`, `main`.`MovieBookmark`.`createdAt`, `main`.`MovieBookmark`.`updatedAt` FROM `main`.`MovieBookmark` WHERE 1=1 ORDER BY `main`.`MovieBookmark`.`createdAt` DESC LIMIT ? OFFSET ?

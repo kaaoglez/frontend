@@ -53,10 +53,31 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id } = body;
+    const { id, clearAll } = body;
+
+    if (clearAll) {
+      // Clear entire queue
+      const count = await db.printJob.deleteMany({});
+      return NextResponse.json({ success: true, deleted: count.count });
+    }
 
     if (!id) {
       return NextResponse.json({ error: 'Job ID is required' }, { status: 400 });
+    }
+
+    // Cancel individual job - try to cancel via CUPS first, then delete from DB
+    try {
+      const job = await db.printJob.findUnique({ where: { id } });
+      if (job && job.status === 'printing') {
+        try {
+          const { execSync } = await import('child_process');
+          execSync('cancel -a');
+        } catch {
+          // CUPS cancel failed, continue with DB delete
+        }
+      }
+    } catch {
+      // ignore
     }
 
     await db.printJob.delete({ where: { id } });

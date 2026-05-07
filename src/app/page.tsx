@@ -1250,15 +1250,39 @@ function PrinterSection() {
   const handleDeleteJob = async (id: string) => {
     if (!confirm('¿Cancelar este trabajo de impresión?')) return;
     try {
-      await fetch('/api/printers/jobs', {
+      const res = await fetchWithTimeout('/api/printers/jobs', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
-      toast.success('Trabajo cancelado');
-      loadData();
+      if (res.ok) {
+        toast.success('Trabajo cancelado');
+        loadData();
+      } else {
+        toast.error('Error al cancelar');
+      }
     } catch {
-      toast.error('Error al cancelar');
+      toast.error('Error de conexión');
+    }
+  };
+
+  const handleClearQueue = async () => {
+    if (!confirm('¿Limpiar toda la cola de impresión? Se eliminarán todos los trabajos.')) return;
+    try {
+      const res = await fetchWithTimeout('/api/printers/jobs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAll: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toast.success(`Cola limpiada (${data.deleted} trabajo(s) eliminado(s))`);
+        loadData();
+      } else {
+        toast.error('Error al limpiar la cola');
+      }
+    } catch {
+      toast.error('Error de conexión');
     }
   };
 
@@ -1340,10 +1364,21 @@ function PrinterSection() {
       {/* Print Queue */}
       <Card className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <ClockIcon className="h-5 w-5 text-amber-600" />
-            Cola de Impresión
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ClockIcon className="h-5 w-5 text-amber-600" />
+              Cola de Impresión
+              {jobs.length > 0 && (
+                <Badge variant="secondary" className="text-xs">{jobs.length}</Badge>
+              )}
+            </CardTitle>
+            {jobs.length > 0 && (
+              <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30" onClick={handleClearQueue}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Limpiar cola
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {jobs.length > 0 ? (
@@ -1360,16 +1395,15 @@ function PrinterSection() {
                   <Badge className={`text-xs ${printStatusColor(job.status)}`}>
                     {printStatusLabel(job.status)}
                   </Badge>
-                  {job.status === 'pending' && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500"
-                      onClick={() => handleDeleteJob(job.id)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                    title="Cancelar trabajo"
+                    onClick={() => handleDeleteJob(job.id)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -2583,6 +2617,7 @@ function MusicSection() {
   const [bmCoverUrl, setBmCoverUrl] = useState('');
   const [bmNotes, setBmNotes] = useState('');
   const [bmFavorite, setBmFavorite] = useState(false);
+  const [editingMusicBm, setEditingMusicBm] = useState<Record<string, unknown> | null>(null);
 
   const loadMedia = useCallback(async () => {
     try {
@@ -2817,6 +2852,41 @@ function MusicSection() {
       const res = await fetchWithTimeout(`/api/music/bookmarks/${id}`, { method: 'DELETE' });
       if (res.ok) { toast.success('Eliminado'); loadMusicBookmarks(); }
     } catch { toast.error('Error al eliminar'); }
+  };
+
+  const openEditMusicDialog = (bm: Record<string, unknown>) => {
+    setEditingMusicBm(bm);
+    setBmTitle(String(bm.title));
+    setBmArtist(String(bm.artist || ''));
+    setBmAlbum(String(bm.album || ''));
+    setBmExternalUrl(String(bm.externalUrl || ''));
+    setBmCoverUrl(String(bm.coverUrl || ''));
+    setBmNotes(String(bm.notes || ''));
+    setBmFavorite(!!bm.isFavorite);
+    setShowAddBookmark(true);
+  };
+
+  const updateMusicBookmark = async () => {
+    if (!editingMusicBm || !bmTitle.trim()) return;
+    const loading = toast.loading('Actualizando canción...');
+    try {
+      const res = await fetchWithTimeout(`/api/music/bookmarks/${editingMusicBm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: bmTitle, artist: bmArtist || null, album: bmAlbum || null, externalUrl: bmExternalUrl || null, coverUrl: bmCoverUrl || null, notes: bmNotes || null, isFavorite: bmFavorite }),
+      });
+      if (res.ok) {
+        toast.success('Canción actualizada', { id: loading });
+        setShowAddBookmark(false); setEditingMusicBm(null);
+        setBmTitle(''); setBmArtist(''); setBmAlbum(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); setBmFavorite(false);
+        loadMusicBookmarks();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al actualizar', { id: loading });
+      }
+    } catch (err) {
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo de espera agotado' : 'Error de conexión', { id: loading });
+    }
   };
 
   const handleDelete = async (filePath: string, name: string) => {
@@ -3199,14 +3269,17 @@ function MusicSection() {
                         {bm.artist && <p className="text-sm text-muted-foreground truncate">{String(bm.artist)}</p>}
                         {bm.album && <p className="text-xs text-muted-foreground truncate">{String(bm.album)}</p>}
                       </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                      <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         {bm.isFavorite && <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />}
                         {bm.externalUrl && (
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(String(bm.externalUrl), '_blank')}>
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteMusicBookmark(String(bm.id))}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditMusicDialog(bm)} title="Editar">
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteMusicBookmark(String(bm.id))} title="Eliminar">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -3219,12 +3292,12 @@ function MusicSection() {
         </div>
       )}
 
-      {/* Add Bookmark Dialog */}
-      <Dialog open={showAddBookmark} onOpenChange={setShowAddBookmark}>
+      {/* Add/Edit Bookmark Dialog */}
+      <Dialog open={showAddBookmark} onOpenChange={(open) => { setShowAddBookmark(open); if (!open) { setEditingMusicBm(null); setBmTitle(''); setBmArtist(''); setBmAlbum(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); setBmFavorite(false); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agregar Canción</DialogTitle>
-            <DialogDescription>Guarda un enlace a tu canción favorita</DialogDescription>
+            <DialogTitle>{editingMusicBm ? 'Editar Canción' : 'Agregar Canción'}</DialogTitle>
+            <DialogDescription>{editingMusicBm ? 'Modifica los detalles de la canción' : 'Guarda un enlace a tu canción favorita'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -3257,8 +3330,12 @@ function MusicSection() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddBookmark(false)}>Cancelar</Button>
-            <Button onClick={createMusicBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+            <Button variant="outline" onClick={() => { setShowAddBookmark(false); setEditingMusicBm(null); setBmTitle(''); setBmArtist(''); setBmAlbum(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); setBmFavorite(false); }}>Cancelar</Button>
+            {editingMusicBm ? (
+              <Button onClick={updateMusicBookmark} disabled={!bmTitle.trim()}>Actualizar</Button>
+            ) : (
+              <Button onClick={createMusicBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -3295,6 +3372,7 @@ function MoviesSection() {
   const [bmExternalUrl, setBmExternalUrl] = useState('');
   const [bmCoverUrl, setBmCoverUrl] = useState('');
   const [bmNotes, setBmNotes] = useState('');
+  const [editingMovieBm, setEditingMovieBm] = useState<Record<string, unknown> | null>(null);
 
   const loadMedia = useCallback(async () => {
     try {
@@ -3515,6 +3593,38 @@ function MoviesSection() {
       const res = await fetchWithTimeout(`/api/movies/bookmarks/${id}`, { method: 'DELETE' });
       if (res.ok) { toast.success('Eliminada'); loadMovieBookmarks(); }
     } catch { toast.error('Error al eliminar'); }
+  };
+
+  const openEditMovieDialog = (bm: Record<string, unknown>) => {
+    setEditingMovieBm(bm);
+    setBmTitle(String(bm.title));
+    setBmExternalUrl(String(bm.streamingUrl || ''));
+    setBmCoverUrl(String(bm.posterPath || ''));
+    setBmNotes(String(bm.notes || ''));
+    setShowAddBookmark(true);
+  };
+
+  const updateMovieBookmark = async () => {
+    if (!editingMovieBm || !bmTitle.trim()) return;
+    const loading = toast.loading('Actualizando película...');
+    try {
+      const res = await fetchWithTimeout(`/api/movies/bookmarks/${editingMovieBm.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: bmTitle, streamingUrl: bmExternalUrl || null, posterPath: bmCoverUrl || null, notes: bmNotes || null }),
+      });
+      if (res.ok) {
+        toast.success('Película actualizada', { id: loading });
+        setShowAddBookmark(false); setEditingMovieBm(null);
+        setBmTitle(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes('');
+        loadMovieBookmarks();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al actualizar', { id: loading });
+      }
+    } catch (err) {
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo de espera agotado' : 'Error de conexión', { id: loading });
+    }
   };
 
   // Movie name without extension for display
@@ -3801,33 +3911,47 @@ function MoviesSection() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
               {movieBookmarks.map((bm) => (
-                <Card key={String(bm.id)} className="hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-16 h-20 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {bm.posterPath ? (
-                          <img src={String(bm.posterPath)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                        ) : (
-                          <Film className="h-6 w-6 text-rose-500" />
-                        )}
+                <Card key={String(bm.id)} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  {/* Poster */}
+                  <div className="aspect-[2/3] relative bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/40">
+                    {bm.posterPath ? (
+                      <img
+                        src={String(bm.posterPath)}
+                        alt={String(bm.title)}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                        <Film className="h-12 w-12 text-rose-300 dark:text-rose-700" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{String(bm.title)}</p>
-                        {bm.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{String(bm.notes)}</p>}
-                      </div>
-                      <div className="flex items-center gap-1 flex-shrink-0">
+                    )}
+                    {/* Play / Open overlay */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 transition-all flex gap-2">
                         {bm.streamingUrl && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(String(bm.streamingUrl), '_blank')}>
-                            <ExternalLink className="h-3.5 w-3.5" />
+                          <Button size="icon" className="h-10 w-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg" onClick={(e) => { e.stopPropagation(); window.open(String(bm.streamingUrl), '_blank'); }}>
+                            <Play className="h-5 w-5 ml-0.5" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteMovieBookmark(String(bm.id))}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
                     </div>
+                    {/* Action buttons */}
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+                      <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow bg-black/40 hover:bg-white/90 hover:text-violet-600 text-white border-none" onClick={(e) => { e.stopPropagation(); openEditMovieDialog(bm); }} title="Editar">
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="secondary" size="icon" className="h-7 w-7 rounded-full shadow bg-black/40 hover:bg-red-500 text-white border-none" onClick={(e) => { e.stopPropagation(); deleteMovieBookmark(String(bm.id)); }} title="Eliminar">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Movie info */}
+                  <CardContent className="p-3">
+                    <p className="text-sm font-medium truncate">{String(bm.title)}</p>
+                    {bm.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{String(bm.notes)}</p>}
                   </CardContent>
                 </Card>
               ))}
@@ -3836,12 +3960,12 @@ function MoviesSection() {
         </div>
       )}
 
-      {/* Add Bookmark Dialog */}
-      <Dialog open={showAddBookmark} onOpenChange={setShowAddBookmark}>
+      {/* Add/Edit Bookmark Dialog */}
+      <Dialog open={showAddBookmark} onOpenChange={(open) => { setShowAddBookmark(open); if (!open) { setEditingMovieBm(null); setBmTitle(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agregar Película</DialogTitle>
-            <DialogDescription>Guarda un enlace a tu película favorita</DialogDescription>
+            <DialogTitle>{editingMovieBm ? 'Editar Película' : 'Agregar Película'}</DialogTitle>
+            <DialogDescription>{editingMovieBm ? 'Modifica los detalles de la película' : 'Guarda un enlace a tu película favorita'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -3862,8 +3986,12 @@ function MoviesSection() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddBookmark(false)}>Cancelar</Button>
-            <Button onClick={createMovieBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+            <Button variant="outline" onClick={() => { setShowAddBookmark(false); setEditingMovieBm(null); setBmTitle(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); }}>Cancelar</Button>
+            {editingMovieBm ? (
+              <Button onClick={updateMovieBookmark} disabled={!bmTitle.trim()}>Actualizar</Button>
+            ) : (
+              <Button onClick={createMovieBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -4366,6 +4494,7 @@ function RadioSection() {
   const [stCountry, setStCountry] = useState('');
   const [stDescription, setStDescription] = useState('');
   const [radioTab, setRadioTab] = useState<'preset' | 'custom'>('preset');
+  const [editingStation, setEditingStation] = useState<Record<string, unknown> | null>(null);
 
   // Radio audio control
   useEffect(() => {
@@ -4421,6 +4550,36 @@ function RadioSection() {
       const res = await fetch(`/api/radio/stations/${id}`, { method: 'DELETE' });
       if (res.ok) { toast.success('Eliminada'); loadCustomStations(); }
     } catch { toast.error('Error al eliminar'); }
+  };
+
+  const openEditStationDialog = (station: Record<string, unknown>) => {
+    setEditingStation(station);
+    setStName(String(station.name));
+    setStUrl(String(station.url));
+    setStGenre(String(station.genre || ''));
+    setStCountry(String(station.country || ''));
+    setStDescription(String(station.description || ''));
+    setShowAddStation(true);
+  };
+
+  const updateStation = async () => {
+    if (!editingStation || !stName.trim() || !stUrl.trim()) return;
+    try {
+      const res = await fetch(`/api/radio/stations/${editingStation.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: stName, url: stUrl, genre: stGenre || null, country: stCountry || null, description: stDescription || null }),
+      });
+      if (res.ok) {
+        toast.success('Emisora actualizada');
+        setShowAddStation(false); setEditingStation(null);
+        setStName(''); setStUrl(''); setStGenre(''); setStCountry(''); setStDescription('');
+        loadCustomStations();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al actualizar');
+      }
+    } catch { toast.error('Error de conexión'); }
   };
 
   const toggleRadioStation = (station: { id: string; name: string; genre: string; url: string; country: string }) => {
@@ -4586,7 +4745,10 @@ function RadioSection() {
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {station.isFavorite && <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />}
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={(e) => { e.stopPropagation(); deleteStation(String(station.id)); }}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditStationDialog(station); }} title="Editar">
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={(e) => { e.stopPropagation(); deleteStation(String(station.id)); }} title="Eliminar">
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                           <Button variant={isActive && radioPlaying ? 'default' : 'outline'} size="icon" className={`h-8 w-8 ${isActive && radioPlaying ? 'bg-violet-600' : ''}`}>
@@ -4603,12 +4765,12 @@ function RadioSection() {
         </div>
       )}
 
-      {/* Add Station Dialog */}
-      <Dialog open={showAddStation} onOpenChange={setShowAddStation}>
+      {/* Add/Edit Station Dialog */}
+      <Dialog open={showAddStation} onOpenChange={(open) => { setShowAddStation(open); if (!open) { setEditingStation(null); setStName(''); setStUrl(''); setStGenre(''); setStCountry(''); setStDescription(''); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agregar Emisora</DialogTitle>
-            <DialogDescription>Agrega una emisora de radio con su URL de streaming</DialogDescription>
+            <DialogTitle>{editingStation ? 'Editar Emisora' : 'Agregar Emisora'}</DialogTitle>
+            <DialogDescription>{editingStation ? 'Modifica los detalles de la emisora' : 'Agrega una emisora de radio con su URL de streaming'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -4635,8 +4797,12 @@ function RadioSection() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddStation(false)}>Cancelar</Button>
-            <Button onClick={createStation} disabled={!stName.trim() || !stUrl.trim()}>Agregar</Button>
+            <Button variant="outline" onClick={() => { setShowAddStation(false); setEditingStation(null); setStName(''); setStUrl(''); setStGenre(''); setStCountry(''); setStDescription(''); }}>Cancelar</Button>
+            {editingStation ? (
+              <Button onClick={updateStation} disabled={!stName.trim() || !stUrl.trim()}>Actualizar</Button>
+            ) : (
+              <Button onClick={createStation} disabled={!stName.trim() || !stUrl.trim()}>Agregar</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
