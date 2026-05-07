@@ -74,10 +74,71 @@ model PrintJob {
   fileName    String
   filePath    String
   printerName String?
-  status      String   @default("pending") // pending, printing, completed, failed, cancelled
+  status      String   @default("pending")
   copies      Int      @default(1)
   pages       Int?
   submittedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MovieBookmark {
+  id          String   @id @default(cuid())
+  tmdbId      Int?
+  title       String
+  originalTitle String?
+  overview    String?
+  posterPath  String?
+  backdropPath String?
+  releaseDate String?
+  voteAverage Float?
+  genreIds    String   @default("[]")
+  streamingUrl String?
+  notes       String?
+  status      String   @default("pendiente")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RadioStation {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  genre       String?
+  country     String?
+  description String?
+  faviconUrl  String?
+  isFavorite  Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MusicBookmark {
+  id          String   @id @default(cuid())
+  title       String
+  artist      String?
+  album       String?
+  coverUrl    String?
+  externalUrl String?
+  notes       String?
+  isFavorite  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BookBookmark {
+  id          String   @id @default(cuid())
+  title       String
+  author      String?
+  description String?
+  coverUrl    String?
+  externalUrl String?
+  isbn        String?
+  format      String   @default("Físico")
+  status      String   @default("No leído")
+  rating      Int?
+  notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

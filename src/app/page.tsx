@@ -12,11 +12,14 @@ import {
   File, Image as ImageIcon, Archive, Music, Film, Code, FileType,
   AlertTriangle, CheckCircle, PrinterIcon, CircleDot, Send,
   Tag, BookMarked, BarChart3, Clock as ClockIcon, Activity, Copy,
+  Bookmark, BookmarkCheck, BookmarkPlus, Heart,
   Monitor, Server as ServerIcon, Shield, Play, Pause, SkipBack, SkipForward,
   Volume2, VolumeX, Repeat, Shuffle, Maximize, Minimize,
   Disc3, FilmIcon, Music2, Radio, Headphones, Newspaper, Calendar, Globe,
   Moon, Timer, TimerOff,
 } from 'lucide-react';
+
+const SearchIcon = Search;
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +39,17 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 // ─── Helpers ──────────────────────────────────────────────────
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(id);
+  }
+}
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
@@ -1540,6 +1554,13 @@ function LibrarySection() {
   const [readingBook, setReadingBook] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [playingAudiobook, setPlayingAudiobook] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [sortAsc, setSortAsc] = useState(true);
+  const [activeTab, setActiveTab] = useState<'local' | 'bookmarks'>('local');
+  const [bookmarks, setBookmarks] = useState<Array<Record<string, unknown>>>([]);
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
+  const [bookStatusFilter, setBookStatusFilter] = useState('all');
+  const [showAddBookDialog, setShowAddBookDialog] = useState(false);
+  const [editingBookBm, setEditingBookBm] = useState<Record<string, unknown> | null>(null);
+  const [bookForm, setBookForm] = useState({ title: '', author: '', externalUrl: '', isbn: '', format: 'Físico', status: 'No leído', notes: '' });
 
   const loadBooks = useCallback(async () => {
     try {
@@ -1782,6 +1803,119 @@ function LibrarySection() {
     setRenameItem(null);
   };
 
+  // ─── Book Bookmarks ──────────────────────────────────
+  const loadBookmarks = useCallback(async () => {
+    setBookmarksLoading(true);
+    try {
+      const res = await fetch(`/api/books/bookmarks?status=all`);
+      if (res.ok) {
+        const data = await res.json();
+        setBookmarks(data.bookmarks || []);
+      }
+    } catch { toast.error('Error cargando marcadores de libros'); }
+    finally { setBookmarksLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'bookmarks') loadBookmarks();
+  }, [activeTab, loadBookmarks]);
+
+  const resetBookForm = () => setBookForm({ title: '', author: '', externalUrl: '', isbn: '', format: 'Físico', status: 'No leído', notes: '' });
+
+  const openAddBookDialog = () => {
+    setEditingBookBm(null);
+    resetBookForm();
+    setShowAddBookDialog(true);
+  };
+
+  const openEditBookDialog = (bm: Record<string, unknown>) => {
+    setEditingBookBm(bm);
+    setBookForm({
+      title: String(bm.title || ''),
+      author: String(bm.author || ''),
+      externalUrl: String(bm.externalUrl || ''),
+      isbn: String(bm.isbn || ''),
+      format: String(bm.format || 'Físico'),
+      status: String(bm.status || 'No leído'),
+      notes: String(bm.notes || ''),
+    });
+    setShowAddBookDialog(true);
+  };
+
+  const saveBookBookmark = async () => {
+    if (!bookForm.title.trim()) {
+      toast.error('El título es obligatorio');
+      return;
+    }
+    const loading = toast.loading('Guardando libro...');
+    try {
+      const payload = {
+        title: bookForm.title.trim(),
+        author: bookForm.author.trim() || null,
+        externalUrl: bookForm.externalUrl.trim() || null,
+        isbn: bookForm.isbn.trim() || null,
+        format: bookForm.format,
+        status: bookForm.status,
+        notes: bookForm.notes.trim() || null,
+      };
+      if (editingBookBm) {
+        const res = await fetchWithTimeout(`/api/books/bookmarks/${editingBookBm.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          toast.success('Libro actualizado', { id: loading });
+          setShowAddBookDialog(false);
+          loadBookmarks();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error || 'Error al actualizar', { id: loading });
+        }
+      } else {
+        const res = await fetchWithTimeout('/api/books/bookmarks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          toast.success('Libro agregado', { id: loading });
+          setShowAddBookDialog(false);
+          loadBookmarks();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error || 'Error al agregar el libro', { id: loading });
+        }
+      }
+    } catch (err) {
+      console.error('Book bookmark error:', err);
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo de espera agotado' : 'Error de conexión', { id: loading });
+    }
+  };
+
+  const deleteBookBookmark = async (id: unknown) => {
+    if (!confirm('¿Eliminar este libro?')) return;
+    try {
+      const res = await fetch(`/api/books/bookmarks/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('Libro eliminado');
+        loadBookmarks();
+      } else { toast.error('Error al eliminar'); }
+    } catch { toast.error('Error de conexión'); }
+  };
+
+  const filteredBookmarks = bookStatusFilter === 'all'
+    ? bookmarks
+    : bookmarks.filter((bm) => String(bm.status) === bookStatusFilter);
+
+  const bookFormatColor = (format: string) => {
+    switch (format) {
+      case 'Digital': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'Audiolibro': return 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400';
+      default: return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    }
+  };
+
   const filteredFolders = searchQuery ? folders.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase())) : folders;
   const filteredBooks = searchQuery ? books.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : books;
   const sortedFolders = sortAsc
@@ -2010,6 +2144,18 @@ function LibrarySection() {
         </div>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex gap-2 flex-wrap">
+        <Button variant={activeTab === 'local' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setActiveTab('local')}>
+          <HardDrive className="h-3.5 w-3.5 mr-1" />Archivos Locales
+        </Button>
+        <Button variant={activeTab === 'bookmarks' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setActiveTab('bookmarks')}>
+          <Bookmark className="h-3.5 w-3.5 mr-1" />Mis Libros
+        </Button>
+      </div>
+
+      {activeTab === 'local' && (
+      <>
       {/* Quick stats */}
       {!loading && (totalBookCount > 0 || folders.length > 0) && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
@@ -2196,6 +2342,203 @@ function LibrarySection() {
           )}
         </div>
       )}
+      </>
+      )}
+
+      {activeTab === 'bookmarks' && (
+      <div className="space-y-4">
+        {/* Actions bar */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button size="sm" className="h-8" onClick={openAddBookDialog}>
+            <Plus className="h-3.5 w-3.5 mr-1" />Agregar Libro
+          </Button>
+          <div className="flex gap-1 ml-auto flex-wrap">
+            {[
+              { key: 'all', label: 'Todos' },
+              { key: 'No leído', label: 'No leído' },
+              { key: 'Leyendo', label: 'Leyendo' },
+              { key: 'Leído', label: 'Leído' },
+              { key: 'Favorito', label: 'Favorito' },
+            ].map((f) => (
+              <Button
+                key={f.key}
+                variant={bookStatusFilter === f.key ? 'default' : 'outline'}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setBookStatusFilter(f.key)}
+              >
+                {f.label}
+              </Button>
+            ))}
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={loadBookmarks} disabled={bookmarksLoading}>
+              <RefreshCw className={`h-3.5 w-3.5 ${bookmarksLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Bookmarks List */}
+        {bookmarksLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-lg" />)}
+          </div>
+        ) : filteredBookmarks.length === 0 ? (
+          <Card className="border-dashed border-2">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <BookMarked className="h-16 w-16 text-muted-foreground/30 mb-4" />
+              <p className="font-medium mb-1">No hay libros guardados</p>
+              <p className="text-sm text-muted-foreground mb-4">Agrega libros a tu colección con el botón "Agregar Libro"</p>
+              <Button variant="outline" size="sm" onClick={openAddBookDialog}>
+                <Plus className="h-4 w-4 mr-1" />Agregar Libro
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredBookmarks.map((bm: Record<string, unknown>) => (
+              <Card key={String(bm.id)} className="group hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 transition-all">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex-shrink-0 mt-0.5">
+                      <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="text-sm font-semibold line-clamp-2 leading-tight">{String(bm.title)}</h4>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                          {bm.externalUrl && (
+                            <a href={String(bm.externalUrl)} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditBookDialog(bm)}>
+                            <Edit className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteBookBookmark(bm.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      {bm.author && (
+                        <p className="text-xs text-muted-foreground mt-0.5">{String(bm.author)}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {bm.format && (
+                          <Badge variant="outline" className={`text-[10px] border ${bookFormatColor(String(bm.format))}`}>
+                            {String(bm.format)}
+                          </Badge>
+                        )}
+                        {bm.status && (
+                          <Badge variant="outline" className={`text-[10px] border ${bookStatusColor(String(bm.status))}`}>
+                            {bookStatusLabel(String(bm.status))}
+                          </Badge>
+                        )}
+                        {bm.rating != null && Number(bm.rating) > 0 && (
+                          <span className="text-xs text-amber-500 flex items-center gap-0.5">
+                            <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                            {Number(bm.rating).toFixed(1)}
+                          </span>
+                        )}
+                      </div>
+                      {bm.isbn && (
+                        <p className="text-[10px] text-muted-foreground mt-1.5 font-mono">ISBN: {String(bm.isbn)}</p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* Add/Edit Book Dialog */}
+      <Dialog open={showAddBookDialog} onOpenChange={setShowAddBookDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingBookBm ? 'Editar Libro' : 'Agregar Libro'}</DialogTitle>
+            <DialogDescription>{editingBookBm ? 'Modifica los datos del libro' : 'Agrega un nuevo libro a tu colección'}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input
+                placeholder="Título del libro"
+                value={bookForm.title}
+                onChange={(e) => setBookForm({ ...bookForm, title: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Autor</Label>
+              <Input
+                placeholder="Nombre del autor"
+                value={bookForm.author}
+                onChange={(e) => setBookForm({ ...bookForm, author: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Enlace externo (URL)</Label>
+              <Input
+                placeholder="https://..."
+                value={bookForm.externalUrl}
+                onChange={(e) => setBookForm({ ...bookForm, externalUrl: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>ISBN</Label>
+                <Input
+                  placeholder="978-..."
+                  value={bookForm.isbn}
+                  onChange={(e) => setBookForm({ ...bookForm, isbn: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Formato</Label>
+                <Select value={bookForm.format} onValueChange={(v) => setBookForm({ ...bookForm, format: v })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Físico">Físico</SelectItem>
+                    <SelectItem value="Digital">Digital</SelectItem>
+                    <SelectItem value="Audiolibro">Audiolibro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Estado</Label>
+              <Select value={bookForm.status} onValueChange={(v) => setBookForm({ ...bookForm, status: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="No leído">No leído</SelectItem>
+                  <SelectItem value="Leyendo">Leyendo</SelectItem>
+                  <SelectItem value="Leído">Leído</SelectItem>
+                  <SelectItem value="Favorito">Favorito</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notas</Label>
+              <Textarea
+                placeholder="Notas personales..."
+                value={bookForm.notes}
+                onChange={(e) => setBookForm({ ...bookForm, notes: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddBookDialog(false)}>Cancelar</Button>
+            <Button onClick={saveBookBookmark} disabled={!bookForm.title.trim()}>{editingBookBm ? 'Guardar' : 'Agregar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2230,6 +2573,16 @@ function MusicSection() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const [sortAsc, setSortAsc] = useState(true);
+  const [musicTab, setMusicTab] = useState<'local' | 'bookmarks'>('local');
+  const [musicBookmarks, setMusicBookmarks] = useState<Array<Record<string, unknown>>>([]);
+  const [showAddBookmark, setShowAddBookmark] = useState(false);
+  const [bmTitle, setBmTitle] = useState('');
+  const [bmArtist, setBmArtist] = useState('');
+  const [bmAlbum, setBmAlbum] = useState('');
+  const [bmExternalUrl, setBmExternalUrl] = useState('');
+  const [bmCoverUrl, setBmCoverUrl] = useState('');
+  const [bmNotes, setBmNotes] = useState('');
+  const [bmFavorite, setBmFavorite] = useState(false);
 
   const loadMedia = useCallback(async () => {
     try {
@@ -2424,6 +2777,48 @@ function MusicSection() {
   const totalSize = tracks.reduce((s, t) => s + t.size, 0);
   const totalSongs = folders.reduce((s, f) => s + f.itemCount, 0) + tracks.length;
 
+  // ── Music Bookmarks ──
+  const loadMusicBookmarks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/music/bookmarks');
+      if (res.ok) { const data = await res.json(); setMusicBookmarks(data.bookmarks || []); }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { if (musicTab === 'bookmarks') loadMusicBookmarks(); }, [musicTab, loadMusicBookmarks]);
+
+  const createMusicBookmark = async () => {
+    if (!bmTitle.trim()) return;
+    const loading = toast.loading('Guardando canción...');
+    try {
+      const res = await fetchWithTimeout('/api/music/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: bmTitle, artist: bmArtist || null, album: bmAlbum || null, externalUrl: bmExternalUrl || null, coverUrl: bmCoverUrl || null, notes: bmNotes || null, isFavorite: bmFavorite }),
+      });
+      if (res.ok) {
+        toast.success('Canción guardada', { id: loading });
+        setShowAddBookmark(false);
+        setBmTitle(''); setBmArtist(''); setBmAlbum(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); setBmFavorite(false);
+        loadMusicBookmarks();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al guardar la canción', { id: loading });
+      }
+    } catch (err) {
+      console.error('Music bookmark error:', err);
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo de espera agotado' : 'Error de conexión', { id: loading });
+    }
+  };
+
+  const deleteMusicBookmark = async (id: string) => {
+    if (!confirm('¿Eliminar este bookmark?')) return;
+    try {
+      const res = await fetchWithTimeout(`/api/music/bookmarks/${id}`, { method: 'DELETE' });
+      if (res.ok) { toast.success('Eliminado'); loadMusicBookmarks(); }
+    } catch { toast.error('Error al eliminar'); }
+  };
+
   const handleDelete = async (filePath: string, name: string) => {
     if (!confirm(`¿Eliminar "${name}"?`)) return;
     try {
@@ -2555,6 +2950,17 @@ function MusicSection() {
         </div>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex gap-2">
+        <Button variant={musicTab === 'local' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setMusicTab('local')}>
+          <Music className="h-3.5 w-3.5 mr-1" />Archivos Locales
+        </Button>
+        <Button variant={musicTab === 'bookmarks' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setMusicTab('bookmarks')}>
+          <Heart className="h-3.5 w-3.5 mr-1" />Mis Favoritos
+        </Button>
+      </div>
+
+      {musicTab === 'local' && (<>
       {/* Quick stats */}
       {!loading && (totalSongs > 0 || folders.length > 0) && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
@@ -2757,6 +3163,105 @@ function MusicSection() {
       )}
 
       {currentTrack && <div className="h-24" />}
+      </>)}
+
+      {musicTab === 'bookmarks' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{musicBookmarks.length} canción{musicBookmarks.length !== 1 ? 'es' : ''} guardada{musicBookmarks.length !== 1 ? 's' : ''}</p>
+            <Button size="sm" onClick={() => setShowAddBookmark(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" />Agregar
+            </Button>
+          </div>
+          {musicBookmarks.length === 0 ? (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Heart className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin favoritos aún</p>
+                <p className="text-sm text-muted-foreground">Guarda canciones con links a Spotify, YouTube y más</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {musicBookmarks.map((bm) => (
+                <Card key={String(bm.id)} className="hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {bm.coverUrl ? (
+                          <img src={String(bm.coverUrl)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        ) : (
+                          <Music className="h-5 w-5 text-violet-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{String(bm.title)}</p>
+                        {bm.artist && <p className="text-sm text-muted-foreground truncate">{String(bm.artist)}</p>}
+                        {bm.album && <p className="text-xs text-muted-foreground truncate">{String(bm.album)}</p>}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {bm.isFavorite && <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />}
+                        {bm.externalUrl && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(String(bm.externalUrl), '_blank')}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteMusicBookmark(String(bm.id))}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Bookmark Dialog */}
+      <Dialog open={showAddBookmark} onOpenChange={setShowAddBookmark}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar Canción</DialogTitle>
+            <DialogDescription>Guarda un enlace a tu canción favorita</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Título *</Label>
+              <Input value={bmTitle} onChange={(e) => setBmTitle(e.target.value)} placeholder="Nombre de la canción" />
+            </div>
+            <div>
+              <Label>Artista</Label>
+              <Input value={bmArtist} onChange={(e) => setBmArtist(e.target.value)} placeholder="Nombre del artista" />
+            </div>
+            <div>
+              <Label>Álbum</Label>
+              <Input value={bmAlbum} onChange={(e) => setBmAlbum(e.target.value)} placeholder="Nombre del álbum" />
+            </div>
+            <div>
+              <Label>URL (Spotify, YouTube...)</Label>
+              <Input value={bmExternalUrl} onChange={(e) => setBmExternalUrl(e.target.value)} placeholder="https://open.spotify.com/..." />
+            </div>
+            <div>
+              <Label>URL de Carátula (opcional)</Label>
+              <Input value={bmCoverUrl} onChange={(e) => setBmCoverUrl(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <Label>Notas</Label>
+              <Textarea value={bmNotes} onChange={(e) => setBmNotes(e.target.value)} placeholder="Notas..." rows={2} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={bmFavorite} onCheckedChange={setBmFavorite} />
+              <Label>Favorito</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddBookmark(false)}>Cancelar</Button>
+            <Button onClick={createMusicBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2783,6 +3288,13 @@ function MoviesSection() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [activeTab, setActiveTab] = useState<'local' | 'bookmarks'>('local');
+  const [movieBookmarks, setMovieBookmarks] = useState<Array<Record<string, unknown>>>([]);
+  const [showAddBookmark, setShowAddBookmark] = useState(false);
+  const [bmTitle, setBmTitle] = useState('');
+  const [bmExternalUrl, setBmExternalUrl] = useState('');
+  const [bmCoverUrl, setBmCoverUrl] = useState('');
+  const [bmNotes, setBmNotes] = useState('');
 
   const loadMedia = useCallback(async () => {
     try {
@@ -2963,6 +3475,48 @@ function MoviesSection() {
     setRenameItem(null);
   };
 
+  // ── Movie Bookmarks ──
+  const loadMovieBookmarks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/movies/bookmarks');
+      if (res.ok) { const data = await res.json(); setMovieBookmarks(data.bookmarks || []); }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { if (activeTab === 'bookmarks') loadMovieBookmarks(); }, [activeTab, loadMovieBookmarks]);
+
+  const createMovieBookmark = async () => {
+    if (!bmTitle.trim()) return;
+    const loading = toast.loading('Guardando película...');
+    try {
+      const res = await fetchWithTimeout('/api/movies/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: bmTitle, streamingUrl: bmExternalUrl || null, posterPath: bmCoverUrl || null, notes: bmNotes || null }),
+      });
+      if (res.ok) {
+        toast.success('Película guardada', { id: loading });
+        setShowAddBookmark(false);
+        setBmTitle(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes('');
+        loadMovieBookmarks();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || 'Error al guardar la película', { id: loading });
+      }
+    } catch (err) {
+      console.error('Movie bookmark error:', err);
+      toast.error(err instanceof DOMException && err.name === 'AbortError' ? 'Tiempo de espera agotado' : 'Error de conexión', { id: loading });
+    }
+  };
+
+  const deleteMovieBookmark = async (id: string) => {
+    if (!confirm('¿Eliminar esta película?')) return;
+    try {
+      const res = await fetchWithTimeout(`/api/movies/bookmarks/${id}`, { method: 'DELETE' });
+      if (res.ok) { toast.success('Eliminada'); loadMovieBookmarks(); }
+    } catch { toast.error('Error al eliminar'); }
+  };
+
   // Movie name without extension for display
   const movieDisplayName = currentMovie?.name.replace(/\.[^.]+$/, '') || '';
 
@@ -3114,6 +3668,18 @@ function MoviesSection() {
         </div>
       </div>
 
+      {/* Tab Switcher */}
+      <div className="flex gap-2">
+        <Button variant={activeTab === 'local' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setActiveTab('local')}>
+          <Film className="h-3.5 w-3.5 mr-1" />Archivos Locales
+        </Button>
+        <Button variant={activeTab === 'bookmarks' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setActiveTab('bookmarks')}>
+          <Bookmark className="h-3.5 w-3.5 mr-1" />Mis Películas
+        </Button>
+      </div>
+
+      {activeTab === 'local' && (
+      <>
       {/* Quick stats */}
       {!loading && (movies.length > 0 || folders.length > 0) && (
         <div className="flex items-center gap-4 text-xs text-muted-foreground px-1">
@@ -3215,6 +3781,92 @@ function MoviesSection() {
           )}
         </div>
       )}
+      </>
+      )}
+
+      {activeTab === 'bookmarks' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{movieBookmarks.length} película{movieBookmarks.length !== 1 ? 's' : ''} guardada{movieBookmarks.length !== 1 ? 's' : ''}</p>
+            <Button size="sm" onClick={() => setShowAddBookmark(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" />Agregar
+            </Button>
+          </div>
+          {movieBookmarks.length === 0 ? (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Bookmark className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin películas guardadas aún</p>
+                <p className="text-sm text-muted-foreground">Guarda películas con links para verlas online</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {movieBookmarks.map((bm) => (
+                <Card key={String(bm.id)} className="hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-16 h-20 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {bm.posterPath ? (
+                          <img src={String(bm.posterPath)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                        ) : (
+                          <Film className="h-6 w-6 text-rose-500" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{String(bm.title)}</p>
+                        {bm.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{String(bm.notes)}</p>}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {bm.streamingUrl && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(String(bm.streamingUrl), '_blank')}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteMovieBookmark(String(bm.id))}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Bookmark Dialog */}
+      <Dialog open={showAddBookmark} onOpenChange={setShowAddBookmark}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar Película</DialogTitle>
+            <DialogDescription>Guarda un enlace a tu película favorita</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Título *</Label>
+              <Input value={bmTitle} onChange={(e) => setBmTitle(e.target.value)} placeholder="Nombre de la película" />
+            </div>
+            <div>
+              <Label>URL para ver (Netflix, Prime, YouTube...)</Label>
+              <Input value={bmExternalUrl} onChange={(e) => setBmExternalUrl(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <Label>URL del Poster (opcional)</Label>
+              <Input value={bmCoverUrl} onChange={(e) => setBmCoverUrl(e.target.value)} placeholder="https://..." />
+            </div>
+            <div>
+              <Label>Notas</Label>
+              <Textarea value={bmNotes} onChange={(e) => setBmNotes(e.target.value)} placeholder="Notas..." rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddBookmark(false)}>Cancelar</Button>
+            <Button onClick={createMovieBookmark} disabled={!bmTitle.trim()}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -3706,6 +4358,14 @@ function RadioSection() {
   const radioAudioRef = useRef<HTMLAudioElement>(null);
   const [radioFilter, setRadioFilter] = useState('all');
   const { radioStation, setRadioStation, radioPlaying, setRadioPlaying, radioVolume, setRadioVolume } = useAppStore();
+  const [customStations, setCustomStations] = useState<Array<Record<string, unknown>>>([]);
+  const [showAddStation, setShowAddStation] = useState(false);
+  const [stName, setStName] = useState('');
+  const [stUrl, setStUrl] = useState('');
+  const [stGenre, setStGenre] = useState('');
+  const [stCountry, setStCountry] = useState('');
+  const [stDescription, setStDescription] = useState('');
+  const [radioTab, setRadioTab] = useState<'preset' | 'custom'>('preset');
 
   // Radio audio control
   useEffect(() => {
@@ -3722,7 +4382,48 @@ function RadioSection() {
     radioAudioRef.current.volume = radioVolume;
   }, [radioVolume]);
 
-  const toggleRadioStation = (station: typeof RADIO_STATIONS[0]) => {
+  // ── Custom Stations ──
+  const loadCustomStations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/radio/stations');
+      if (res.ok) { const data = await res.json(); setCustomStations(data.stations || []); }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    if (radioTab !== 'custom') return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const res = await fetch('/api/radio/stations');
+        if (res.ok && !cancelled) { const data = await res.json(); setCustomStations(data.stations || []); }
+      } catch { /* ignore */ }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [radioTab]);
+
+  const createStation = async () => {
+    if (!stName.trim() || !stUrl.trim()) return;
+    try {
+      const res = await fetch('/api/radio/stations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: stName, url: stUrl, genre: stGenre || null, country: stCountry || null, description: stDescription || null }),
+      });
+      if (res.ok) { toast.success('Emisora agregada'); setShowAddStation(false); setStName(''); setStUrl(''); setStGenre(''); setStCountry(''); setStDescription(''); loadCustomStations(); }
+    } catch { toast.error('Error al guardar'); }
+  };
+
+  const deleteStation = async (id: string) => {
+    if (!confirm('¿Eliminar esta emisora?')) return;
+    try {
+      const res = await fetch(`/api/radio/stations/${id}`, { method: 'DELETE' });
+      if (res.ok) { toast.success('Eliminada'); loadCustomStations(); }
+    } catch { toast.error('Error al eliminar'); }
+  };
+
+  const toggleRadioStation = (station: { id: string; name: string; genre: string; url: string; country: string }) => {
     if (radioStation?.id === station.id) {
       setRadioPlaying(!radioPlaying);
     } else {
@@ -3737,6 +4438,16 @@ function RadioSection() {
   return (
     <div className="space-y-4">
       <audio ref={radioAudioRef} preload="none" />
+
+      {/* Tab Switcher */}
+      <div className="flex gap-2">
+        <Button variant={radioTab === 'preset' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setRadioTab('preset')}>
+          <Radio className="h-3.5 w-3.5 mr-1" />Emisoras Predefinidas
+        </Button>
+        <Button variant={radioTab === 'custom' ? 'default' : 'outline'} size="sm" className="h-8" onClick={() => setRadioTab('custom')}>
+          <Plus className="h-3.5 w-3.5 mr-1" />Mis Emisoras
+        </Button>
+      </div>
 
       {/* Now Playing Bar */}
       {radioStation && (
@@ -3768,6 +4479,7 @@ function RadioSection() {
         </Card>
       )}
 
+      {radioTab === 'preset' && (<>
       {/* Genre Filter */}
       <div className="flex flex-wrap gap-2">
         {radioGenres.map((genre) => (
@@ -3829,6 +4541,105 @@ function RadioSection() {
           );
         })}
       </div>
+      </>)}
+
+      {radioTab === 'custom' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">{customStations.length} emisora{customStations.length !== 1 ? 's' : ''} personalizada{customStations.length !== 1 ? 's' : ''}</p>
+            <Button size="sm" onClick={() => setShowAddStation(true)}>
+              <Plus className="h-3.5 w-3.5 mr-1" />Agregar Emisora
+            </Button>
+          </div>
+          {customStations.length === 0 ? (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Radio className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin emisoras personalizadas</p>
+                <p className="text-sm text-muted-foreground">Agrega tus emisoras de radio favoritas con su URL de streaming</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {customStations.map((station) => {
+                const isActive = radioStation?.id === station.id;
+                const stationData = { id: String(station.id), name: String(station.name), genre: String(station.genre || ''), url: String(station.url), country: String(station.country || '') };
+                return (
+                  <Card key={String(station.id)} className={`cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${isActive ? 'border-2 border-violet-400 bg-violet-50/50 dark:bg-violet-950/10' : 'hover:border-violet-200'}`} onClick={() => {
+                    if (isActive) setRadioPlaying(!radioPlaying);
+                    else { setRadioStation(stationData); setRadioPlaying(true); }
+                  }}>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isActive && radioPlaying ? 'bg-violet-500 text-white' : 'bg-muted'}`}>
+                          {isActive && radioPlaying ? (
+                            <div className="flex items-end gap-[2px] h-3">
+                              <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '60%' }} />
+                              <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} />
+                              <div className="w-[3px] bg-white rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} />
+                            </div>
+                          ) : <Headphones className="h-5 w-5 text-muted-foreground" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{String(station.name)}</p>
+                          <p className="text-xs text-muted-foreground">{station.genre ? `${String(station.genre)} · ` : ''}{station.country || ''}</p>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {station.isFavorite && <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={(e) => { e.stopPropagation(); deleteStation(String(station.id)); }}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant={isActive && radioPlaying ? 'default' : 'outline'} size="icon" className={`h-8 w-8 ${isActive && radioPlaying ? 'bg-violet-600' : ''}`}>
+                            {isActive && radioPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 ml-0.5" />}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Station Dialog */}
+      <Dialog open={showAddStation} onOpenChange={setShowAddStation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar Emisora</DialogTitle>
+            <DialogDescription>Agrega una emisora de radio con su URL de streaming</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nombre *</Label>
+              <Input value={stName} onChange={(e) => setStName(e.target.value)} placeholder="Nombre de la emisora" />
+            </div>
+            <div>
+              <Label>URL de Streaming *</Label>
+              <Input value={stUrl} onChange={(e) => setStUrl(e.target.value)} placeholder="https://stream.example.com/radio.mp3" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Género</Label>
+                <Input value={stGenre} onChange={(e) => setStGenre(e.target.value)} placeholder="Jazz, Rock..." />
+              </div>
+              <div>
+                <Label>País</Label>
+                <Input value={stCountry} onChange={(e) => setStCountry(e.target.value)} placeholder="Cuba, USA..." />
+              </div>
+            </div>
+            <div>
+              <Label>Descripción</Label>
+              <Textarea value={stDescription} onChange={(e) => setStDescription(e.target.value)} placeholder="Descripción opcional..." rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddStation(false)}>Cancelar</Button>
+            <Button onClick={createStation} disabled={!stName.trim() || !stUrl.trim()}>Agregar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
