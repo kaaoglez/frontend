@@ -194,6 +194,182 @@ function NewsWidget() {
   );
 }
 
+// ─── Folder Picker Hook & Content (inline, no separate dialog) ──
+
+function useFolderPicker(onSelect: (path: string) => void | Promise<void>) {
+  const [pickerPath, setPickerPath] = useState('/home/z');
+  const [directories, setDirectories] = useState<Array<{ name: string; path: string }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [pickerHistory, setPickerHistory] = useState<string[]>(['/home/z']);
+  const [disks, setDisks] = useState<Array<{ name: string; mountPath: string; mounted: boolean; usagePercent: number; freeSpace: number }>>([]);
+  const [disksLoading, setDisksLoading] = useState(false);
+  const [view, setView] = useState<'disks' | 'browser'>('disks');
+  const [pickerMode, setPickerMode] = useState(false);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  const loadDirectories = useCallback(async (targetPath: string) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/files?path=${encodeURIComponent(targetPath)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setDirectories((data.items || []).filter((item: { isDirectory: boolean }) => item.isDirectory).map((item: { name: string; path: string }) => ({ name: item.name, path: item.path })));
+      } else { setDirectories([]); }
+    } catch { setDirectories([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  const loadDisks = useCallback(async () => {
+    try {
+      setDisksLoading(true);
+      const res = await fetch('/api/disks/info');
+      if (res.ok) { const data = await res.json(); setDisks(data.disks || []); }
+    } catch { setDisks([]); }
+    finally { setDisksLoading(false); }
+  }, []);
+
+  const openPicker = useCallback(() => {
+    setPickerMode(true);
+    setPickerPath('/home/z');
+    setPickerHistory(['/home/z']);
+    setView('disks');
+    loadDisks();
+  }, [loadDisks]);
+
+  const closePicker = useCallback(() => {
+    setPickerMode(false);
+  }, []);
+
+  const navigateTo = useCallback((path: string) => {
+    const newHistory = [...pickerHistory, path];
+    setPickerHistory(newHistory);
+    setPickerPath(path);
+    setView('browser');
+    loadDirectories(path);
+  }, [pickerHistory, loadDirectories]);
+
+  const goBack = useCallback(() => {
+    if (pickerHistory.length > 1) {
+      const newHistory = pickerHistory.slice(0, -1);
+      const parent = newHistory[newHistory.length - 1];
+      setPickerHistory(newHistory);
+      setPickerPath(parent);
+      loadDirectories(parent);
+    }
+  }, [pickerHistory, loadDirectories]);
+
+  const goUp = useCallback(() => {
+    const parent = pickerPath.split('/').slice(0, -1).join('/') || '/';
+    if (parent !== pickerPath) {
+      setPickerHistory([...pickerHistory, parent]);
+      setPickerPath(parent);
+      loadDirectories(parent);
+    }
+  }, [pickerPath, pickerHistory, loadDirectories]);
+
+  const goToDisks = useCallback(() => {
+    setView('disks');
+    setPickerHistory(['/home/z']);
+    setPickerPath('/home/z');
+  }, []);
+
+  const handleSelect = useCallback(async () => {
+    const pathToSelect = pickerPath;
+    await onSelectRef.current(pathToSelect);
+    setPickerMode(false);
+  }, [pickerPath]);
+
+  return {
+    pickerMode, openPicker, closePicker,
+    pickerContent: (
+      <>
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-1 min-w-0 overflow-x-auto pb-1 border-b mb-2">
+          <Button variant={view === 'disks' ? 'secondary' : 'ghost'} size="icon" className="h-7 w-7 flex-shrink-0" onClick={goToDisks} title="Ver discos">
+            <HardDrive className="h-4 w-4" />
+          </Button>
+          {view === 'browser' && (
+            <>
+              <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={goBack} disabled={pickerHistory.length <= 1}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={goUp} disabled={pickerPath === '/'}>
+                <ChevronUp className="h-4 w-4" />
+              </Button>
+              <span className="text-xs font-mono text-muted-foreground truncate px-2">{pickerPath}</span>
+            </>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="overflow-y-auto min-h-[200px] max-h-[400px] -mx-6 px-6">
+          {view === 'disks' ? (
+            disksLoading ? (
+              <div className="space-y-2 py-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
+            ) : disks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <HardDrive className="h-10 w-10 mb-2" /><p className="text-sm">No se encontraron discos</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5 py-1">
+                {disks.map((disk) => (
+                  <button key={disk.mountPath} className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted/80 transition-colors text-left group border border-transparent hover:border-border" onClick={() => disk.mounted ? navigateTo(disk.mountPath) : toast.error(`Disco "${disk.name}" no está montado`)} disabled={!disk.mounted}>
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${disk.mounted ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-muted'}`}>
+                      <HardDrive className={`h-5 w-5 ${disk.mounted ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${!disk.mounted ? 'text-muted-foreground' : ''}`}>{disk.name}</p>
+                      <p className="text-xs text-muted-foreground font-mono truncate">{disk.mountPath}</p>
+                    </div>
+                    {disk.mounted ? (
+                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                        <span className="text-xs text-muted-foreground">{formatBytes(disk.freeSpace)} libre</span>
+                        <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${disk.usagePercent > 90 ? 'bg-red-500' : disk.usagePercent > 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${disk.usagePercent}%` }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] flex-shrink-0 text-muted-foreground">Desmontado</Badge>
+                    )}
+                    {disk.mounted && <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )
+          ) : (
+            loading ? (
+              <div className="space-y-2 py-4">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            ) : directories.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <FolderOpen className="h-10 w-10 mb-2" /><p className="text-sm">No hay carpetas aquí</p>
+              </div>
+            ) : (
+              <div className="space-y-0.5 py-1">
+                {directories.map((dir) => (
+                  <button key={dir.path} className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/80 transition-colors text-left group" onClick={() => navigateTo(dir.path)}>
+                    <Folder className="h-5 w-5 text-amber-500 fill-amber-200 dark:fill-amber-900/30 flex-shrink-0" />
+                    <span className="text-sm font-medium truncate flex-1">{dir.name}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 justify-end mt-2">
+          <Button variant="outline" onClick={closePicker}>← Volver</Button>
+          {view === 'browser' && (
+            <Button onClick={handleSelect}><FolderPlus className="h-4 w-4 mr-1" />Seleccionar esta carpeta</Button>
+          )}
+        </div>
+      </>
+    ),
+  };
+}
+
 // ─── Radio Stations Data ──────────────────────────────────────
 
 const RADIO_STATIONS = [
@@ -1588,6 +1764,17 @@ function LibrarySection() {
   const [coverPaths, setCoverPaths] = useState<Record<string, boolean>>({});
   const [showSettings, setShowSettings] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const folderPicker = useFolderPicker(async (path) => {
+    try {
+      const current = useAppStore.getState().libraryLibraryPaths;
+      if (current.includes(path)) { toast.info('Esta carpeta ya está en la lista'); return; }
+      const newPaths = [...current, path];
+      useAppStore.getState().setLibraryLibraryPaths(newPaths);
+      const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'libraryLibraryPaths', value: JSON.stringify(newPaths) }) });
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success('Carpeta agregada');
+    } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
+  });
   const [downloading, setDownloading] = useState<string | null>(null);
   const [readingBook, setReadingBook] = useState<{ name: string; path: string; extension: string } | null>(null);
   const [playingAudiobook, setPlayingAudiobook] = useState<{ name: string; path: string; extension: string } | null>(null);
@@ -2168,8 +2355,8 @@ function LibrarySection() {
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goBack} disabled={libraryPathHistory.length <= 1}><ArrowLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goUp}><ChevronUp className="h-4 w-4" /></Button>
           {libraryLibraryPaths.map((p) => (
-            <Button key={p} variant={libraryCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs" onClick={() => { setLibraryPathHistory([p]); setLibraryCurrentPath(p); }}>
-              <HardDrive className="h-3.5 w-3.5 mr-1" />{p.split('/').pop()}
+            <Button key={p} variant={libraryCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs max-w-[140px]" onClick={() => { setLibraryPathHistory([p]); setLibraryCurrentPath(p); }}>
+              <HardDrive className="h-3.5 w-3.5 mr-1 shrink-0" /><span className="truncate">{p.split('/').pop()}</span>
             </Button>
           ))}
           {!libraryLibraryPaths.includes(libraryCurrentPath) && (
@@ -2315,29 +2502,36 @@ function LibrarySection() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Carpetas de Biblioteca</DialogTitle>
-            <DialogDescription>Configura las carpetas donde buscar libros</DialogDescription>
+            <DialogDescription>{folderPicker.pickerMode ? 'Navega y selecciona una carpeta' : 'Configura las carpetas donde buscar libros'}</DialogDescription>
           </DialogHeader>
+          {folderPicker.pickerMode ? (
+            folderPicker.pickerContent
+          ) : (
           <div className="space-y-3">
             <div className="space-y-2">
               {libraryLibraryPaths.map((p, i) => (
-                <div key={p} className="flex items-center gap-2">
+                <div key={p} className="flex items-center gap-2 min-w-0">
                   <HardDrive className="h-4 w-4 text-amber-500 flex-shrink-0" />
-                  <span className="text-sm flex-1 font-mono">{p}</span>
+                  <span className="text-sm flex-1 font-mono truncate min-w-0" title={p}>{p}</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateLibraryPaths(libraryLibraryPaths.filter((_, idx) => idx !== i))}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="/mnt/MisLibros" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1" />
-              <Button onClick={() => { if (newPath.trim()) { updateLibraryPaths([...libraryLibraryPaths, newPath.trim()]); setNewPath(''); } }} disabled={!newPath.trim()}>
+            <div className="flex gap-2 flex-wrap">
+              <Input placeholder="/mnt/MisLibros" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1 min-w-[120px]" />
+              <Button variant="outline" onClick={folderPicker.openPicker} title="Explorar carpetas">
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+              <Button onClick={async () => { if (newPath.trim()) { const p = newPath.trim(); if (libraryLibraryPaths.includes(p)) { toast.info('Ya existe'); return; } try { const np = [...libraryLibraryPaths, p]; setLibraryLibraryPaths(np); await saveLibraryPaths(np); toast.success('Carpeta agregada'); setNewPath(''); } catch { toast.error('Error al guardar'); } } }} disabled={!newPath.trim()}>
                 <Plus className="h-4 w-4 mr-1" />Agregar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Las carpetas se guardan en la base de datos y se mantienen al reiniciar.</p>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button></DialogFooter>
+          )}
+          <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -2710,6 +2904,17 @@ function MusicSection() {
   const [coverPaths, setCoverPaths] = useState<Record<string, boolean>>({});
   const [showSettings, setShowSettings] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const folderPicker = useFolderPicker(async (path) => {
+    try {
+      const current = useAppStore.getState().musicLibraryPaths;
+      if (current.includes(path)) { toast.info('Esta carpeta ya está en la lista'); return; }
+      const newPaths = [...current, path];
+      useAppStore.getState().setMusicLibraryPaths(newPaths);
+      const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'musicLibraryPaths', value: JSON.stringify(newPaths) }) });
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success('Carpeta agregada');
+    } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
+  });
   const [showCoverUpload, setShowCoverUpload] = useState(false);
   const [coverFolder, setCoverFolder] = useState('');
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
@@ -3116,8 +3321,8 @@ function MusicSection() {
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goBack} disabled={musicPathHistory.length <= 1}><ArrowLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goUp}><ChevronUp className="h-4 w-4" /></Button>
           {musicLibraryPaths.map((p) => (
-            <Button key={p} variant={musicCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs" onClick={() => { setMusicPathHistory([p]); setMusicCurrentPath(p); }}>
-              <Disc3 className="h-3.5 w-3.5 mr-1" />{p.split('/').pop()}
+            <Button key={p} variant={musicCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs max-w-[140px]" onClick={() => { setMusicPathHistory([p]); setMusicCurrentPath(p); }}>
+              <Disc3 className="h-3.5 w-3.5 mr-1 shrink-0" /><span className="truncate">{p.split('/').pop()}</span>
             </Button>
           ))}
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => navigateTo('/')}><HomeIcon className="h-4 w-4" /></Button>
@@ -3245,29 +3450,36 @@ function MusicSection() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Carpetas de Música</DialogTitle>
-            <DialogDescription>Configura las carpetas donde buscas música</DialogDescription>
+            <DialogDescription>{folderPicker.pickerMode ? 'Navega y selecciona una carpeta' : 'Configura las carpetas donde buscas música'}</DialogDescription>
           </DialogHeader>
+          {folderPicker.pickerMode ? (
+            folderPicker.pickerContent
+          ) : (
           <div className="space-y-3">
             <div className="space-y-2">
               {musicLibraryPaths.map((p, i) => (
-                <div key={p} className="flex items-center gap-2">
+                <div key={p} className="flex items-center gap-2 min-w-0">
                   <Disc3 className="h-4 w-4 text-violet-500 flex-shrink-0" />
-                  <span className="text-sm flex-1 font-mono">{p}</span>
+                  <span className="text-sm flex-1 font-mono truncate min-w-0" title={p}>{p}</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateMusicPaths(musicLibraryPaths.filter((_, idx) => idx !== i))}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="/mnt/MiMusica" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1" />
-              <Button onClick={() => { if (newPath.trim()) { updateMusicPaths([...musicLibraryPaths, newPath.trim()]); setNewPath(''); } }} disabled={!newPath.trim()}>
+            <div className="flex gap-2 flex-wrap">
+              <Input placeholder="/mnt/MiMusica" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1 min-w-[120px]" />
+              <Button variant="outline" onClick={folderPicker.openPicker} title="Explorar carpetas">
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+              <Button onClick={async () => { if (newPath.trim()) { const p = newPath.trim(); if (musicLibraryPaths.includes(p)) { toast.info('Ya existe'); return; } try { const np = [...musicLibraryPaths, p]; setMusicLibraryPaths(np); await saveMusicPaths(np); toast.success('Carpeta agregada'); setNewPath(''); } catch { toast.error('Error al guardar'); } } }} disabled={!newPath.trim()}>
                 <Plus className="h-4 w-4 mr-1" />Agregar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Las carpetas se usan como acceso rápido en la barra de navegación arriba.</p>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button></DialogFooter>
+          )}
+          <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -3558,6 +3770,17 @@ function MoviesSection() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const folderPicker = useFolderPicker(async (path) => {
+    try {
+      const current = useAppStore.getState().movieLibraryPaths;
+      if (current.includes(path)) { toast.info('Esta carpeta ya está en la lista'); return; }
+      const newPaths = [...current, path];
+      useAppStore.getState().setMovieLibraryPaths(newPaths);
+      const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'movieLibraryPaths', value: JSON.stringify(newPaths) }) });
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success('Carpeta agregada');
+    } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
+  });
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
@@ -3913,29 +4136,36 @@ function MoviesSection() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Carpetas de Películas</DialogTitle>
-            <DialogDescription>Configura las carpetas donde buscas películas</DialogDescription>
+            <DialogDescription>{folderPicker.pickerMode ? 'Navega y selecciona una carpeta' : 'Configura las carpetas donde buscas películas'}</DialogDescription>
           </DialogHeader>
+          {folderPicker.pickerMode ? (
+            folderPicker.pickerContent
+          ) : (
           <div className="space-y-3">
             <div className="space-y-2">
               {movieLibraryPaths.map((p, i) => (
-                <div key={p} className="flex items-center gap-2">
+                <div key={p} className="flex items-center gap-2 min-w-0">
                   <Film className="h-4 w-4 text-rose-500 flex-shrink-0" />
-                  <span className="text-sm flex-1 font-mono">{p}</span>
+                  <span className="text-sm flex-1 font-mono truncate min-w-0" title={p}>{p}</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateMoviePaths(movieLibraryPaths.filter((_, idx) => idx !== i))}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="/mnt/MisPeliculas" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1" />
-              <Button onClick={() => { if (newPath.trim()) { updateMoviePaths([...movieLibraryPaths, newPath.trim()]); setNewPath(''); } }} disabled={!newPath.trim()}>
+            <div className="flex gap-2 flex-wrap">
+              <Input placeholder="/mnt/MisPeliculas" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1 min-w-[120px]" />
+              <Button variant="outline" onClick={folderPicker.openPicker} title="Explorar carpetas">
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+              <Button onClick={async () => { if (newPath.trim()) { const p = newPath.trim(); if (movieLibraryPaths.includes(p)) { toast.info('Ya existe'); return; } try { const np = [...movieLibraryPaths, p]; setMovieLibraryPaths(np); await saveMoviePaths(np); toast.success('Carpeta agregada'); setNewPath(''); } catch { toast.error('Error al guardar'); } } }} disabled={!newPath.trim()}>
                 <Plus className="h-4 w-4 mr-1" />Agregar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Las carpetas se guardan en la base de datos y se mantienen al reiniciar.</p>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button></DialogFooter>
+          )}
+          <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -3960,8 +4190,8 @@ function MoviesSection() {
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goBack} disabled={moviePathHistory.length <= 1}><ArrowLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goUp}><ChevronUp className="h-4 w-4" /></Button>
           {movieLibraryPaths.map((p) => (
-            <Button key={p} variant={movieCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs" onClick={() => { setMoviePathHistory([p]); setMovieCurrentPath(p); }}>
-              <Film className="h-3.5 w-3.5 mr-1" />{p.split('/').pop()}
+            <Button key={p} variant={movieCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs max-w-[140px]" onClick={() => { setMoviePathHistory([p]); setMovieCurrentPath(p); }}>
+              <Film className="h-3.5 w-3.5 mr-1 shrink-0" /><span className="truncate">{p.split('/').pop()}</span>
             </Button>
           ))}
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => navigateTo('/')}><HomeIcon className="h-4 w-4" /></Button>
@@ -4333,6 +4563,17 @@ function TvShowsSection() {
   const [tvSearchQuery, setTvSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const folderPicker = useFolderPicker(async (path) => {
+    try {
+      const current = useAppStore.getState().tvshowLibraryPaths;
+      if (current.includes(path)) { toast.info('Esta carpeta ya está en la lista'); return; }
+      const newPaths = [...current, path];
+      useAppStore.getState().setTvshowLibraryPaths(newPaths);
+      const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'tvshowLibraryPaths', value: JSON.stringify(newPaths) }) });
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success('Carpeta agregada');
+    } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
+  });
   const [sortAsc, setSortAsc] = useState(true);
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -4694,29 +4935,36 @@ function TvShowsSection() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Carpetas de TV Shows</DialogTitle>
-            <DialogDescription>Configura las carpetas donde buscas series</DialogDescription>
+            <DialogDescription>{folderPicker.pickerMode ? 'Navega y selecciona una carpeta' : 'Configura las carpetas donde buscas series'}</DialogDescription>
           </DialogHeader>
+          {folderPicker.pickerMode ? (
+            folderPicker.pickerContent
+          ) : (
           <div className="space-y-3">
             <div className="space-y-2">
               {tvshowLibraryPaths.map((p, i) => (
-                <div key={p} className="flex items-center gap-2">
+                <div key={p} className="flex items-center gap-2 min-w-0">
                   <Monitor className="h-4 w-4 text-sky-500 flex-shrink-0" />
-                  <span className="text-sm flex-1 font-mono">{p}</span>
+                  <span className="text-sm flex-1 font-mono truncate min-w-0" title={p}>{p}</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updateTvShowPaths(tvshowLibraryPaths.filter((_, idx) => idx !== i))}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="/mnt/MisSeries" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1" />
-              <Button onClick={() => { if (newPath.trim()) { updateTvShowPaths([...tvshowLibraryPaths, newPath.trim()]); setNewPath(''); } }} disabled={!newPath.trim()}>
+            <div className="flex gap-2 flex-wrap">
+              <Input placeholder="/mnt/MisSeries" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1 min-w-[120px]" />
+              <Button variant="outline" onClick={folderPicker.openPicker} title="Explorar carpetas">
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+              <Button onClick={async () => { if (newPath.trim()) { const p = newPath.trim(); if (tvshowLibraryPaths.includes(p)) { toast.info('Ya existe'); return; } try { const np = [...tvshowLibraryPaths, p]; setTvshowLibraryPaths(np); await saveTvShowPaths(np); toast.success('Carpeta agregada'); setNewPath(''); } catch { toast.error('Error al guardar'); } } }} disabled={!newPath.trim()}>
                 <Plus className="h-4 w-4 mr-1" />Agregar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">Las carpetas se guardan en la base de datos.</p>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button></DialogFooter>
+          )}
+          <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -4741,8 +4989,8 @@ function TvShowsSection() {
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goBack} disabled={tvshowPathHistory.length <= 1}><ArrowLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={goUp}><ChevronUp className="h-4 w-4" /></Button>
           {tvshowLibraryPaths.map((p) => (
-            <Button key={p} variant={tvshowCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs" onClick={() => { setTvshowPathHistory([p]); setTvshowCurrentPath(p); }}>
-              <Monitor className="h-3.5 w-3.5 mr-1" />{p.split('/').pop()}
+            <Button key={p} variant={tvshowCurrentPath === p ? 'secondary' : 'ghost'} size="sm" className="h-8 flex-shrink-0 text-xs max-w-[140px]" onClick={() => { setTvshowPathHistory([p]); setTvshowCurrentPath(p); }}>
+              <Monitor className="h-3.5 w-3.5 mr-1 shrink-0" /><span className="truncate">{p.split('/').pop()}</span>
             </Button>
           ))}
           <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={() => navigateTo('/')}><HomeIcon className="h-4 w-4" /></Button>
@@ -5161,6 +5409,17 @@ function ImagesSection() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [newPath, setNewPath] = useState('');
+  const folderPicker = useFolderPicker(async (path) => {
+    try {
+      const current = useAppStore.getState().imageLibraryPaths;
+      if (current.includes(path)) { toast.info('Esta carpeta ya está en la lista'); return; }
+      const newPaths = [...current, path];
+      useAppStore.getState().setImageLibraryPaths(newPaths);
+      const res = await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: 'imageLibraryPaths', value: JSON.stringify(newPaths) }) });
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success('Carpeta agregada');
+    } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
+  });
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'masonry'>('grid');
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -5407,11 +5666,11 @@ function ImagesSection() {
           {imagePathHistory.length > 1 && imagePathHistory.slice(1).map((p, i) => (
             <span key={i} className="flex items-center gap-1">
               <ChevronRight className="h-3 w-3 text-muted-foreground" />
-              <Button variant="ghost" size="sm" className="h-8" onClick={() => {
+              <Button variant="ghost" size="sm" className="h-8 max-w-[140px]" onClick={() => {
                 setImagePathHistory(imagePathHistory.slice(0, i + 2));
                 setImageCurrentPath(p);
               }}>
-                {p.split('/').pop()}
+                <span className="truncate">{p.split('/').pop()}</span>
               </Button>
             </span>
           ))}
@@ -5441,28 +5700,35 @@ function ImagesSection() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Carpetas de Imágenes</DialogTitle>
-            <DialogDescription>Configura las carpetas donde buscas imágenes</DialogDescription>
+            <DialogDescription>{folderPicker.pickerMode ? 'Navega y selecciona una carpeta' : 'Configura las carpetas donde buscas imágenes'}</DialogDescription>
           </DialogHeader>
+          {folderPicker.pickerMode ? (
+            folderPicker.pickerContent
+          ) : (
           <div className="space-y-3">
             <div className="space-y-2">
               {imageLibraryPaths.map((p, i) => (
-                <div key={i} className="flex items-center gap-2">
+                <div key={i} className="flex items-center gap-2 min-w-0">
                   <ImageIcon className="h-4 w-4 text-rose-500 flex-shrink-0" />
-                  <span className="text-sm flex-1 font-mono">{p}</span>
+                  <span className="text-sm flex-1 font-mono truncate min-w-0" title={p}>{p}</span>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => updatePaths(imageLibraryPaths.filter((_, idx) => idx !== i))}>
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input placeholder="/mnt/MisFotos" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1" />
-              <Button onClick={() => { if (newPath.trim()) { updatePaths([...imageLibraryPaths, newPath.trim()]); setNewPath(''); } }} disabled={!newPath.trim()}>
+            <div className="flex gap-2 flex-wrap">
+              <Input placeholder="/mnt/MisFotos" value={newPath} onChange={(e) => setNewPath(e.target.value)} className="flex-1 min-w-[120px]" />
+              <Button variant="outline" onClick={folderPicker.openPicker} title="Explorar carpetas">
+                <FolderOpen className="h-4 w-4" />
+              </Button>
+              <Button onClick={async () => { if (newPath.trim()) { const p = newPath.trim(); if (imageLibraryPaths.includes(p)) { toast.info('Ya existe'); return; } try { const np = [...imageLibraryPaths, p]; setImageLibraryPaths(np); await savePaths(np); toast.success('Carpeta agregada'); setNewPath(''); } catch { toast.error('Error al guardar'); } } }} disabled={!newPath.trim()}>
                 <Plus className="h-4 w-4 mr-1" />Agregar
               </Button>
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button></DialogFooter>
+          )}
+          <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>
 

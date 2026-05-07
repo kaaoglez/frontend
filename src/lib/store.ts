@@ -241,13 +241,13 @@ export const useAppStore = create<AppState>((set) => ({
   setLibraryCurrentPath: (path) => set({ libraryCurrentPath: path }),
   libraryPathHistory: ['/mnt/Canal'],
   setLibraryPathHistory: (history) => set({ libraryPathHistory: history }),
-  libraryLibraryPaths: ['/mnt/Canal', '/mnt/Tools'],
+  libraryLibraryPaths: [],
   setLibraryLibraryPaths: (paths) => set({ libraryLibraryPaths: paths }),
 
   // Music
   musicBasePath: '/home/z',
   setMusicBasePath: (path) => set({ musicBasePath: path }),
-  musicLibraryPaths: ['/mnt/Canal', '/mnt/Tools'],
+  musicLibraryPaths: [],
   setMusicLibraryPaths: (paths) => set({ musicLibraryPaths: paths }),
   musicCurrentPath: '/home/z',
   setMusicCurrentPath: (path) => set({ musicCurrentPath: path }),
@@ -267,7 +267,7 @@ export const useAppStore = create<AppState>((set) => ({
   // Movies
   movieBasePath: '/home/z',
   setMovieBasePath: (path) => set({ movieBasePath: path }),
-  movieLibraryPaths: ['/mnt/Canal', '/mnt/Tools'],
+  movieLibraryPaths: [],
   setMovieLibraryPaths: (paths) => set({ movieLibraryPaths: paths }),
   movieCurrentPath: '/home/z',
   setMovieCurrentPath: (path) => set({ movieCurrentPath: path }),
@@ -279,7 +279,7 @@ export const useAppStore = create<AppState>((set) => ({
   // TV Shows
   tvshowBasePath: '/home/z',
   setTvshowBasePath: (path) => set({ tvshowBasePath: path }),
-  tvshowLibraryPaths: ['/mnt/Canal', '/mnt/Tools'],
+  tvshowLibraryPaths: [],
   setTvshowLibraryPaths: (paths) => set({ tvshowLibraryPaths: paths }),
   tvshowCurrentPath: '/home/z',
   setTvshowCurrentPath: (path) => set({ tvshowCurrentPath: path }),
@@ -297,7 +297,7 @@ export const useAppStore = create<AppState>((set) => ({
   // Images
   imageBasePath: '/home/z',
   setImageBasePath: (path) => set({ imageBasePath: path }),
-  imageLibraryPaths: ['/mnt/Canal', '/mnt/Tools'],
+  imageLibraryPaths: [],
   setImageLibraryPaths: (paths) => set({ imageLibraryPaths: paths }),
   imageCurrentPath: '/home/z',
   setImageCurrentPath: (path) => set({ imageCurrentPath: path }),
