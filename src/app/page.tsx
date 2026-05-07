@@ -1855,8 +1855,19 @@ function LibrarySection() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'bookmarks') loadBookmarks();
-  }, [activeTab, loadBookmarks]);
+    loadBookmarks(); // Load bookmarks on mount so search can find them
+  }, [loadBookmarks]);
+
+  // Unified search: filter local files AND bookmarks by searchQuery
+  const filteredFolders = searchQuery ? folders.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase())) : folders;
+  const filteredBooks = searchQuery ? books.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : books;
+  const filteredBookmarks = searchQuery
+    ? bookmarks.filter((bm) =>
+        String(bm.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(bm.author || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : (bookStatusFilter === 'all' ? bookmarks : bookmarks.filter((bm) => String(bm.status) === bookStatusFilter));
+  const isSearching = searchQuery.trim().length > 0;
 
   const resetBookForm = () => setBookForm({ title: '', author: '', externalUrl: '', isbn: '', format: 'Físico', status: 'No leído', notes: '' });
 
@@ -1942,9 +1953,7 @@ function LibrarySection() {
     } catch { toast.error('Error de conexión'); }
   };
 
-  const filteredBookmarks = bookStatusFilter === 'all'
-    ? bookmarks
-    : bookmarks.filter((bm) => String(bm.status) === bookStatusFilter);
+  // (filteredBookmarks is defined above with unified search logic)
 
   const bookFormatColor = (format: string) => {
     switch (format) {
@@ -1954,8 +1963,6 @@ function LibrarySection() {
     }
   };
 
-  const filteredFolders = searchQuery ? folders.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase())) : folders;
-  const filteredBooks = searchQuery ? books.filter((b) => b.name.toLowerCase().includes(searchQuery.toLowerCase())) : books;
   const sortedFolders = sortAsc
     ? [...filteredFolders].sort((a, b) => a.name.localeCompare(b.name))
     : [...filteredFolders].sort((a, b) => b.name.localeCompare(a.name));
@@ -2192,6 +2199,105 @@ function LibrarySection() {
         </Button>
       </div>
 
+      {isSearching ? (
+        /* ── Unified Search Results ── */
+        <div className="space-y-6">
+          {(filteredFolders.length > 0 || filteredBooks.length > 0) && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Folder className="h-4 w-4" />Archivos Locales
+                <Badge variant="secondary" className="text-xs">{filteredFolders.length + filteredBooks.length}</Badge>
+              </h3>
+              <div className="space-y-4">
+                {filteredFolders.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {filteredFolders.sort((a, b) => a.name.localeCompare(b.name)).map((folder) => (
+                      <Card key={folder.path} className="group cursor-pointer hover:border-amber-300 dark:hover:border-amber-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
+                        <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                          <div className="relative">
+                            <div className="p-3 rounded-xl bg-amber-100 dark:bg-amber-900/30"><Folder className="h-6 w-6 text-amber-600 dark:text-amber-400" /></div>
+                            {folder.itemCount > 0 ? <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-amber-500/70 text-white h-4 w-4 flex items-center justify-center p-0">{folder.itemCount}</Badge> : null}
+                          </div>
+                          <p className="text-xs font-medium truncate w-full">{folder.name}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {filteredBooks.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredBooks.sort((a, b) => a.name.localeCompare(b.name)).map((book) => {
+                      const ext = book.extension.replace('.', '').toUpperCase();
+                      return (
+                        <Card key={book.path} className="group hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 transition-all cursor-pointer" onClick={() => openBook(book)}>
+                          <CardContent className="p-4">
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2.5 rounded-xl flex-shrink-0 ${book.isAudiobook ? 'bg-violet-100 dark:bg-violet-900/30' : 'bg-emerald-100 dark:bg-emerald-900/30'}`}>
+                                {book.isAudiobook ? <Headphones className="h-5 w-5 text-violet-600 dark:text-violet-400" /> : <BookOpen className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h4 className="text-sm font-medium truncate">{book.name.replace(/\.[^.]+$/, '')}</h4>
+                                <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                  <Badge variant="outline" className="text-[10px]">{ext}</Badge>
+                                  <span>{formatBytes(book.size)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {filteredBookmarks.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <BookMarked className="h-4 w-4" />Mis Libros
+                <Badge variant="secondary" className="text-xs">{filteredBookmarks.length}</Badge>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredBookmarks.map((bm: Record<string, unknown>) => (
+                  <Card key={String(bm.id)} className="group hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 transition-all">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex-shrink-0 mt-0.5"><BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" /></div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="text-sm font-semibold line-clamp-2 leading-tight">{String(bm.title)}</h4>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                              {bm.externalUrl && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(String(bm.externalUrl), '_blank')}><ExternalLink className="h-3.5 w-3.5" /></Button>}
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditBookDialog(bm)}><Edit className="h-3.5 w-3.5" /></Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteBookBookmark(String(bm.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                            </div>
+                          </div>
+                          {bm.author && <p className="text-xs text-muted-foreground mt-0.5">{String(bm.author)}</p>}
+                          <div className="flex items-center gap-2 mt-2 flex-wrap">
+                            {bm.format && <Badge variant="outline" className="text-[10px]">{String(bm.format)}</Badge>}
+                            {bm.status && <Badge className={`text-[10px] ${bookStatusColor(String(bm.status))}`}>{String(bm.status)}</Badge>}
+                          </div>
+                          {bm.notes && <p className="text-[10px] text-muted-foreground mt-1 line-clamp-1">{String(bm.notes)}</p>}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+          {filteredFolders.length === 0 && filteredBooks.length === 0 && filteredBookmarks.length === 0 && (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin resultados</p>
+                <p className="text-sm text-muted-foreground">No se encontró &quot;{searchQuery}&quot; en archivos ni en Mis Libros</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : (<>
       {activeTab === 'local' && (
       <>
       {/* Quick stats */}
@@ -2491,6 +2597,7 @@ function LibrarySection() {
         )}
       </div>
       )}
+      </>)}
 
       {/* Add/Edit Book Dialog */}
       <Dialog open={showAddBookDialog} onOpenChange={setShowAddBookDialog}>
@@ -2807,6 +2914,13 @@ function MusicSection() {
 
   const filteredTracks = searchQuery ? tracks.filter((t) => t.name.toLowerCase().includes(searchQuery.toLowerCase())) : tracks;
   const filteredFolders = searchQuery ? folders.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase())) : folders;
+  const filteredMusicBms = searchQuery
+    ? musicBookmarks.filter((bm) =>
+        String(bm.title).toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(bm.artist || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : musicBookmarks;
+  const musicIsSearching = searchQuery.trim().length > 0;
   const sortedFolders = sortAsc
     ? [...filteredFolders].sort((a, b) => a.name.localeCompare(b.name))
     : [...filteredFolders].sort((a, b) => b.name.localeCompare(a.name));
@@ -2824,7 +2938,7 @@ function MusicSection() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { if (musicTab === 'bookmarks') loadMusicBookmarks(); }, [musicTab, loadMusicBookmarks]);
+  useEffect(() => { loadMusicBookmarks(); }, [loadMusicBookmarks]);
 
   const createMusicBookmark = async () => {
     if (!bmTitle.trim()) return;
@@ -3034,6 +3148,87 @@ function MusicSection() {
         </Button>
       </div>
 
+      {musicIsSearching ? (
+        /* ── Unified Search Results ── */
+        <div className="space-y-6">
+          {(filteredFolders.length > 0 || filteredTracks.length > 0) && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Music className="h-4 w-4" />Archivos Locales
+                <Badge variant="secondary" className="text-xs">{filteredFolders.length + filteredTracks.length}</Badge>
+              </h3>
+              <div className="space-y-4">
+                {filteredFolders.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {filteredFolders.sort((a, b) => a.name.localeCompare(b.name)).map((folder) => (
+                      <Card key={folder.path} className="group cursor-pointer hover:border-violet-300 dark:hover:border-violet-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
+                        <CardContent className="p-3 flex flex-col items-center text-center gap-2">
+                          <div className="relative">
+                            <div className="p-2 rounded-xl bg-violet-100 dark:bg-violet-900/30"><Folder className="h-5 w-5 text-violet-600 dark:text-violet-400" /></div>
+                            {folder.itemCount > 0 ? <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-violet-500/70 text-white h-4 w-4 flex items-center justify-center p-0">{folder.itemCount}</Badge> : null}
+                          </div>
+                          <p className="text-xs font-medium truncate w-full">{folder.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{folder.itemCount} canción{folder.itemCount !== 1 ? 'es' : ''}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {filteredTracks.length > 0 && (
+                  <div className="space-y-1">
+                    {filteredTracks.sort((a, b) => a.name.localeCompare(b.name)).map((track) => (
+                      <div key={track.path} className={`flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${currentTrack?.path === track.path ? 'bg-violet-50 dark:bg-violet-950/20' : ''}`} onClick={() => { setCurrentTrack({ ...track, type: 'audio' }); setIsPlaying(true); }}>
+                        <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-muted">{currentTrack?.path === track.path && isPlaying ? <div className="flex items-end gap-[2px] h-2.5"><div className="w-[2px] bg-violet-500 rounded-full animate-pulse" style={{ height: '60%' }} /><div className="w-[2px] bg-violet-500 rounded-full animate-pulse" style={{ height: '100%', animationDelay: '0.15s' }} /><div className="w-[2px] bg-violet-500 rounded-full animate-pulse" style={{ height: '40%', animationDelay: '0.3s' }} /></div> : <Music className="h-3.5 w-3.5 text-muted-foreground" />}</div>
+                        <div className="flex-1 min-w-0"><p className="text-sm truncate">{track.name.replace(/\.[^.]+$/, '')}</p><p className="text-[10px] text-muted-foreground">{formatBytes(track.size)}</p></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {filteredMusicBms.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Heart className="h-4 w-4" />Mis Favoritos
+                <Badge variant="secondary" className="text-xs">{filteredMusicBms.length}</Badge>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {filteredMusicBms.map((bm) => (
+                  <Card key={String(bm.id)} className="hover:shadow-md hover:-translate-y-0.5 transition-all overflow-hidden">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="w-12 h-12 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {bm.coverUrl ? <img src={String(bm.coverUrl)} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <Music className="h-5 w-5 text-violet-500" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{String(bm.title)}</p>
+                          {bm.artist && <p className="text-sm text-muted-foreground truncate">{String(bm.artist)}</p>}
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {bm.isFavorite && <Heart className="h-4 w-4 text-rose-500 fill-rose-500" />}
+                          {bm.externalUrl && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(String(bm.externalUrl), '_blank')}><ExternalLink className="h-3.5 w-3.5" /></Button>}
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditMusicDialog(bm)}><Edit className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600" onClick={() => deleteMusicBookmark(String(bm.id))}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+          {filteredFolders.length === 0 && filteredTracks.length === 0 && filteredMusicBms.length === 0 && (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin resultados</p>
+                <p className="text-sm text-muted-foreground">No se encontró &quot;{searchQuery}&quot; en archivos ni en Mis Favoritos</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : (<>
       {musicTab === 'local' && (<>
       {/* Quick stats */}
       {!loading && (totalSongs > 0 || folders.length > 0) && (
@@ -3295,6 +3490,7 @@ function MusicSection() {
           )}
         </div>
       )}
+      </>)}
 
       {/* Add/Edit Bookmark Dialog */}
       <Dialog open={showAddBookmark} onOpenChange={(open) => { setShowAddBookmark(open); if (!open) { setEditingMusicBm(null); setBmTitle(''); setBmArtist(''); setBmAlbum(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); setBmFavorite(false); } }}>
@@ -3499,6 +3695,10 @@ function MoviesSection() {
   const filteredFolders = searchQuery
     ? folders.filter((f) => f.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : folders;
+  const filteredMovieBms = searchQuery
+    ? movieBookmarks.filter((bm) => String(bm.title).toLowerCase().includes(searchQuery.toLowerCase()))
+    : movieBookmarks;
+  const movieIsSearching = searchQuery.trim().length > 0;
   const sortedFolders = sortAsc
     ? [...filteredFolders].sort((a, b) => a.name.localeCompare(b.name))
     : [...filteredFolders].sort((a, b) => b.name.localeCompare(a.name));
@@ -3565,7 +3765,7 @@ function MoviesSection() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { if (activeTab === 'bookmarks') loadMovieBookmarks(); }, [activeTab, loadMovieBookmarks]);
+  useEffect(() => { loadMovieBookmarks(); }, [loadMovieBookmarks]);
 
   const createMovieBookmark = async () => {
     if (!bmTitle.trim()) return;
@@ -3792,6 +3992,84 @@ function MoviesSection() {
         </Button>
       </div>
 
+      {movieIsSearching ? (
+        /* ── Unified Search Results ── */
+        <div className="space-y-6">
+          {(filteredFolders.length > 0 || filteredMovies.length > 0) && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Film className="h-4 w-4" />Archivos Locales
+                <Badge variant="secondary" className="text-xs">{filteredFolders.length + filteredMovies.length}</Badge>
+              </h3>
+              <div className="space-y-4">
+                {filteredFolders.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                    {filteredFolders.sort((a, b) => a.name.localeCompare(b.name)).map((folder) => (
+                      <Card key={folder.path} className="group cursor-pointer hover:border-rose-300 dark:hover:border-rose-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
+                        <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                          <div className="relative">
+                            <div className="p-3 rounded-xl bg-rose-100 dark:bg-rose-900/30"><Folder className="h-6 w-6 text-rose-600 dark:text-rose-400" /></div>
+                            {folder.itemCount > 0 ? <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-rose-500/70 text-white h-4 w-4 flex items-center justify-center p-0">{folder.itemCount}</Badge> : null}
+                          </div>
+                          <p className="text-xs font-medium truncate w-full">{folder.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{folder.itemCount} video{folder.itemCount !== 1 ? 's' : ''}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {filteredMovies.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filteredMovies.sort((a, b) => a.name.localeCompare(b.name)).map((movie) => {
+                      const ext = movie.extension.toUpperCase();
+                      return (
+                        <Card key={movie.path} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative" onClick={() => playVideo(movie)}>
+                          <div className="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            <Film className="h-12 w-12 text-white/20 group-hover:text-white/40 transition-colors" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                              <div className="w-14 h-14 rounded-full bg-white/90 dark:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity scale-75 group-hover:scale-100"><Play className="h-7 w-7 text-rose-600 dark:text-rose-400 ml-1" /></div>
+                            </div>
+                            <Badge className="absolute top-2 right-2 text-[10px] bg-black/60 text-white border-none">{ext}</Badge>
+                          </div>
+                          <CardContent className="p-3"><h4 className="text-sm font-medium truncate">{movie.name.replace(/\.[^.]+$/, '')}</h4><span className="text-xs text-muted-foreground">{formatBytes(movie.size)}</span></CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {filteredMovieBms.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Bookmark className="h-4 w-4" />Mis Películas
+                <Badge variant="secondary" className="text-xs">{filteredMovieBms.length}</Badge>
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {filteredMovieBms.map((bm) => (
+                  <Card key={String(bm.id)} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                    <div className="aspect-[2/3] relative bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/40">
+                      {bm.posterPath ? <img src={String(bm.posterPath)} alt={String(bm.title)} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex flex-col items-center justify-center"><Film className="h-12 w-12 text-rose-300 dark:text-rose-700" /></div>}
+                      {bm.streamingUrl && <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center"><div className="opacity-0 group-hover:opacity-100 transition-all"><Button size="icon" className="h-10 w-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg" onClick={(e) => { e.stopPropagation(); window.open(String(bm.streamingUrl), '_blank'); }}><Play className="h-5 w-5 ml-0.5" /></Button></div></div>}
+                    </div>
+                    <CardContent className="p-3"><p className="text-sm font-medium truncate">{String(bm.title)}</p>{bm.notes && <p className="text-xs text-muted-foreground truncate mt-0.5">{String(bm.notes)}</p>}</CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+          {filteredFolders.length === 0 && filteredMovies.length === 0 && filteredMovieBms.length === 0 && (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin resultados</p>
+                <p className="text-sm text-muted-foreground">No se encontró &quot;{searchQuery}&quot; en archivos ni en Mis Películas</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : (<>
       {activeTab === 'local' && (
       <>
       {/* Quick stats */}
@@ -3973,6 +4251,7 @@ function MoviesSection() {
           )}
         </div>
       )}
+      </>)}
 
       {/* Add/Edit Bookmark Dialog */}
       <Dialog open={showAddBookmark} onOpenChange={(open) => { setShowAddBookmark(open); if (!open) { setEditingMovieBm(null); setBmTitle(''); setBmExternalUrl(''); setBmCoverUrl(''); setBmNotes(''); } }}>
@@ -4051,7 +4330,7 @@ function TvShowsSection() {
   const [folders, setFolders] = useState<Array<{ name: string; path: string; itemCount: number }>>([]);
   const [tvFiles, setTvFiles] = useState<MediaItem[]>([]);
   const [loadingFiles, setLoadingFiles] = useState(true);
-  const [fileSearchQuery, setFileSearchQuery] = useState('');
+  const [tvSearchQuery, setTvSearchQuery] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [newPath, setNewPath] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
@@ -4069,7 +4348,6 @@ function TvShowsSection() {
   const [activeTab, setActiveTab] = useState<'local' | 'bookmarks'>('local');
   const [bookmarks, setBookmarks] = useState<Array<Record<string, unknown>>>([]);
   const [loadingBm, setLoadingBm] = useState(true);
-  const [bmSearchQuery, setBmSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingBm, setEditingBm] = useState<Record<string, unknown> | null>(null);
@@ -4244,8 +4522,10 @@ function TvShowsSection() {
   }, []);
 
   // ── File filters ──
-  const filteredTvFiles = fileSearchQuery ? tvFiles.filter((m) => m.name.toLowerCase().includes(fileSearchQuery.toLowerCase())) : tvFiles;
-  const filteredFolders = fileSearchQuery ? folders.filter((f) => f.name.toLowerCase().includes(fileSearchQuery.toLowerCase())) : folders;
+  const filteredTvFiles = tvSearchQuery ? tvFiles.filter((m) => m.name.toLowerCase().includes(tvSearchQuery.toLowerCase())) : tvFiles;
+  const filteredFolders = tvSearchQuery ? folders.filter((f) => f.name.toLowerCase().includes(tvSearchQuery.toLowerCase())) : folders;
+  // Unified search flag
+  const tvIsSearching = tvSearchQuery.trim().length > 0;
   const sortedFolders = sortAsc ? [...filteredFolders].sort((a, b) => a.name.localeCompare(b.name)) : [...filteredFolders].sort((a, b) => b.name.localeCompare(a.name));
   const sortedFiles = sortAsc ? [...filteredTvFiles].sort((a, b) => a.name.localeCompare(b.name)) : [...filteredTvFiles].sort((a, b) => b.name.localeCompare(a.name));
   const totalSize = tvFiles.reduce((s, m) => s + m.size, 0);
@@ -4266,11 +4546,11 @@ function TvShowsSection() {
     }
   }, []);
 
-  useEffect(() => { if (activeTab === 'bookmarks') loadBookmarks(); }, [activeTab, loadBookmarks]);
+  useEffect(() => { loadBookmarks(); }, [loadBookmarks]);
 
   const filteredBookmarks = bookmarks
     .filter((bm) => statusFilter === 'all' || String(bm.status) === statusFilter)
-    .filter((bm) => !bmSearchQuery || String(bm.title).toLowerCase().includes(bmSearchQuery.toLowerCase()) || String(bm.genre || '').toLowerCase().includes(bmSearchQuery.toLowerCase()) || String(bm.network || '').toLowerCase().includes(bmSearchQuery.toLowerCase()));
+    .filter((bm) => !tvSearchQuery || String(bm.title).toLowerCase().includes(tvSearchQuery.toLowerCase()) || String(bm.genre || '').toLowerCase().includes(tvSearchQuery.toLowerCase()) || String(bm.network || '').toLowerCase().includes(tvSearchQuery.toLowerCase()));
 
   const openAddDialog = () => {
     setEditingBm(null);
@@ -4473,7 +4753,7 @@ function TvShowsSection() {
         <div className="flex items-center gap-2 flex-shrink-0">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar..." value={activeTab === 'local' ? fileSearchQuery : bmSearchQuery} onChange={(e) => { if (activeTab === 'local') setFileSearchQuery(e.target.value); else setBmSearchQuery(e.target.value); }} className="pl-9 h-8 w-48" />
+            <Input placeholder="Buscar en todo..." value={tvSearchQuery} onChange={(e) => setTvSearchQuery(e.target.value)} className="pl-9 h-8 w-48" />
           </div>
           <Button variant={sortAsc ? 'secondary' : 'outline'} size="icon" className="h-8 w-8" onClick={() => setSortAsc(!sortAsc)} title={sortAsc ? 'A → Z' : 'Z → A'}>
             <ArrowUpDown className="h-4 w-4" />
@@ -4493,6 +4773,87 @@ function TvShowsSection() {
         </Button>
       </div>
 
+      {tvIsSearching ? (
+        /* ── Unified Search Results ── */
+        <div className="space-y-6">
+          {(filteredFolders.length > 0 || filteredTvFiles.length > 0) && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Monitor className="h-4 w-4" />TV Shows de Archivo
+                <Badge variant="secondary" className="text-xs">{filteredFolders.length + filteredTvFiles.length}</Badge>
+              </h3>
+              <div className="space-y-4">
+                {filteredFolders.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                    {filteredFolders.sort((a, b) => a.name.localeCompare(b.name)).map((folder) => (
+                      <Card key={folder.path} className="group cursor-pointer hover:border-sky-300 dark:hover:border-sky-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
+                        <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+                          <div className="relative">
+                            <div className="p-3 rounded-xl bg-sky-100 dark:bg-sky-900/30"><Folder className="h-6 w-6 text-sky-600 dark:text-sky-400" /></div>
+                            {folder.itemCount > 0 ? <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-sky-500/70 text-white h-4 w-4 flex items-center justify-center p-0"><Play className="h-2 w-2" /></Badge> : null}
+                          </div>
+                          <p className="text-xs font-medium truncate w-full">{folder.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{folder.itemCount} video{folder.itemCount !== 1 ? 's' : ''}</p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                {filteredTvFiles.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filteredTvFiles.sort((a, b) => a.name.localeCompare(b.name)).map((file) => {
+                      const displayName = file.name.replace(/\.[^.]+$/, '');
+                      const ext = file.extension.toUpperCase();
+                      return (
+                        <Card key={file.path} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative" onClick={() => playTvVideo(file)}>
+                          <div className="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                            <Film className="h-12 w-12 text-white/20 group-hover:text-white/40 transition-colors" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                              <div className="w-14 h-14 rounded-full bg-white/90 dark:bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity scale-75 group-hover:scale-100"><Play className="h-7 w-7 text-sky-600 dark:text-sky-400 ml-1" /></div>
+                            </div>
+                            <Badge className="absolute top-2 right-2 text-[10px] bg-black/60 text-white border-none">{ext}</Badge>
+                          </div>
+                          <CardContent className="p-3"><h4 className="text-sm font-medium truncate">{displayName}</h4><span className="text-xs text-muted-foreground">{formatBytes(file.size)}</span></CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+          {filteredBookmarks.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                <Bookmark className="h-4 w-4" />Mis TV Shows
+                <Badge variant="secondary" className="text-xs">{filteredBookmarks.length}</Badge>
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {filteredBookmarks.map((bm) => (
+                  <Card key={String(bm.id)} className="group cursor-pointer overflow-hidden hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                    <div className="aspect-[2/3] relative bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-950/40 dark:to-blue-950/40">
+                      {bm.posterPath ? <img src={String(bm.posterPath)} alt={String(bm.title)} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : <div className="w-full h-full flex flex-col items-center justify-center"><Monitor className="h-12 w-12 text-sky-300 dark:text-sky-700" /></div>}
+                      <div className="absolute top-2 left-2"><Badge className={`text-[10px] ${tvShowStatusColor(String(bm.status))}`}>{tvShowStatusLabel(String(bm.status))}</Badge></div>
+                      {bm.streamingUrl && <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center"><div className="opacity-0 group-hover:opacity-100 transition-all"><Button size="icon" className="h-10 w-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white shadow-lg" onClick={(e) => { e.stopPropagation(); window.open(String(bm.streamingUrl), '_blank'); }}><Play className="h-5 w-5 ml-0.5" /></Button></div></div>}
+                      {bm.rating != null && Number(bm.rating) > 0 && <div className="absolute bottom-2 left-2"><Badge variant="secondary" className="text-[10px] bg-black/50 text-amber-400 border-none backdrop-blur-sm flex items-center gap-0.5"><Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />{Number(bm.rating).toFixed(1)}</Badge></div>}
+                    </div>
+                    <CardContent className="p-3"><p className="text-sm font-medium truncate">{String(bm.title)}</p><div className="flex items-center gap-1.5 mt-1 flex-wrap">{bm.genre && <span className="text-[10px] text-muted-foreground">{String(bm.genre)}</span>}{bm.seasons && <span className="text-[10px] text-muted-foreground">· {bm.seasons} temp.</span>}</div></CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+          {filteredFolders.length === 0 && filteredTvFiles.length === 0 && filteredBookmarks.length === 0 && (
+            <Card className="border-dashed border-2">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Search className="h-12 w-12 text-muted-foreground/30 mb-3" />
+                <p className="font-medium mb-1">Sin resultados</p>
+                <p className="text-sm text-muted-foreground">No se encontró &quot;{tvSearchQuery}&quot; en archivos ni en Mis TV Shows</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      ) : (<>
       {activeTab === 'local' && (
       <>
         {/* Quick stats */}
@@ -4705,6 +5066,7 @@ function TvShowsSection() {
           )}
         </div>
       )}
+      </>)}
 
       {/* Add/Edit Bookmark Dialog */}
       <Dialog open={showAddDialog} onOpenChange={(open) => { if (!open) closeDialog(); else setShowAddDialog(true); }}>
