@@ -1988,6 +1988,11 @@ function LibrarySection() {
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const [editFolder, setEditFolder] = useState<{ path: string; name: string } | null>(null);
+  const [editFolderName, setEditFolderName] = useState('');
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const handleDelete = async (filePath: string, name: string) => {
     if (!confirm(`¿Eliminar "${name}"?`)) return;
@@ -2036,6 +2041,136 @@ function LibrarySection() {
       toast.error('Error de conexión');
     }
     setRenameItem(null);
+  };
+
+  const handleEditFolder = async (item: { path: string; name: string }) => {
+    setEditFolder(item);
+    setEditFolderName(item.name);
+    setEditCoverFile(null);
+    try {
+      const res = await fetch(`/api/music/cover?path=${encodeURIComponent(item.path)}`);
+      if (res.ok && res.headers.get('content-type')?.startsWith('image/')) {
+        const blob = await res.blob();
+        setEditCoverPreview(URL.createObjectURL(blob));
+      } else {
+        setEditCoverPreview(null);
+      }
+    } catch {
+      setEditCoverPreview(null);
+    }
+  };
+
+  const saveEditFolder = async () => {
+    if (!editFolder || !editFolderName.trim()) return;
+    setSavingEdit(true);
+    try {
+      if (editFolderName.trim() !== editFolder.name) {
+        const res = await fetch('/api/files/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: editFolder.path, newName: editFolderName.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error || 'Error al renombrar');
+          setSavingEdit(false);
+          return;
+        }
+      }
+      if (editCoverFile) {
+        const formData = new FormData();
+        const folderPath = editFolderName.trim() !== editFolder.name
+          ? editFolder.path.replace(/[^/]+$/, editFolderName.trim())
+          : editFolder.path;
+        formData.append('path', folderPath);
+        formData.append('cover', editCoverFile);
+        const coverRes = await fetch('/api/music/cover', { method: 'POST', body: formData });
+        if (!coverRes.ok) {
+          const data = await coverRes.json().catch(() => ({}));
+          toast.error(data.error || 'Error al subir carátula');
+          setSavingEdit(false);
+          return;
+        }
+      }
+      toast.success('Carpeta actualizada');
+      setEditFolder(null);
+      setEditCoverFile(null);
+      if (editCoverPreview) URL.revokeObjectURL(editCoverPreview);
+      setEditCoverPreview(null);
+      loadBooks();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  // Edit individual book (rename + cover for its folder)
+  const [editBook, setEditBook] = useState<{ path: string; name: string } | null>(null);
+  const [editBookName, setEditBookName] = useState('');
+  const [editBookCoverFile, setEditBookCoverFile] = useState<File | null>(null);
+  const [editBookCoverPreview, setEditBookCoverPreview] = useState<string | null>(null);
+  const [savingBookEdit, setSavingBookEdit] = useState(false);
+
+  const handleEditBook = async (item: { path: string; name: string }) => {
+    setEditBook(item);
+    setEditBookName(item.name);
+    setEditBookCoverFile(null);
+    const parentDir = item.path.substring(0, item.path.lastIndexOf('/'));
+    try {
+      const res = await fetch(`/api/music/cover?path=${encodeURIComponent(parentDir)}`);
+      if (res.ok && res.headers.get('content-type')?.startsWith('image/')) {
+        const blob = await res.blob();
+        setEditBookCoverPreview(URL.createObjectURL(blob));
+      } else {
+        setEditBookCoverPreview(null);
+      }
+    } catch {
+      setEditBookCoverPreview(null);
+    }
+  };
+
+  const saveEditBook = async () => {
+    if (!editBook || !editBookName.trim()) return;
+    setSavingBookEdit(true);
+    try {
+      if (editBookName.trim() !== editBook.name) {
+        const res = await fetch('/api/files/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: editBook.path, newName: editBookName.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error || 'Error al renombrar');
+          setSavingBookEdit(false);
+          return;
+        }
+      }
+      if (editBookCoverFile) {
+        const parentDir = editBook.path.substring(0, editBook.path.lastIndexOf('/'));
+        const formData = new FormData();
+        formData.append('path', parentDir);
+        formData.append('cover', editBookCoverFile);
+        const coverRes = await fetch('/api/music/cover', { method: 'POST', body: formData });
+        if (!coverRes.ok) {
+          const data = await coverRes.json().catch(() => ({}));
+          toast.error(data.error || 'Error al subir carátula');
+          setSavingBookEdit(false);
+          return;
+        }
+      }
+      toast.success('Libro actualizado');
+      setEditBook(null);
+      setEditBookCoverFile(null);
+      if (editBookCoverPreview) URL.revokeObjectURL(editBookCoverPreview);
+      setEditBookCoverPreview(null);
+      loadBooks();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSavingBookEdit(false);
+    }
   };
 
   // ─── Book Bookmarks ──────────────────────────────────
@@ -2545,6 +2680,144 @@ function LibrarySection() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Folder Dialog (rename + cover) */}
+      <Dialog open={!!editFolder} onOpenChange={(open) => { if (!open) { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Carpeta</DialogTitle>
+            <DialogDescription>Cambia el nombre o agrega una carátula</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Cover preview + upload */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50">
+                {(editCoverPreview || editCoverFile) ? (
+                  <img
+                    src={editCoverFile ? URL.createObjectURL(editCoverFile) : editCoverPreview!}
+                    alt="Carátula"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8" />
+                    <span className="text-xs">Sin carátula</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Label htmlFor="cover-upload-book" className="cursor-pointer">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    Subir carátula
+                  </div>
+                </Label>
+                <input
+                  id="cover-upload-book"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setEditCoverFile(file);
+                    e.target.value = '';
+                  }}
+                />
+                {editCoverFile && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditCoverFile(null)}>
+                    <X className="h-3 w-3 mr-1" />Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Folder name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-folder-name-book" className="text-sm">Nombre de la carpeta</Label>
+              <Input
+                id="edit-folder-name-book"
+                value={editFolderName}
+                onChange={(e) => setEditFolderName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEditFolder(); if (e.key === 'Escape') { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); } }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); }}>Cancelar</Button>
+            <Button onClick={saveEditFolder} disabled={savingEdit || !editFolderName.trim() || (editFolderName.trim() === editFolder?.name && !editCoverFile)}>
+              {savingEdit ? <><RefreshCw className="h-4 w-4 mr-1 animate-spin" />Guardando...</> : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Book Dialog (rename + cover) */}
+      <Dialog open={!!editBook} onOpenChange={(open) => { if (!open) { setEditBook(null); setEditBookCoverFile(null); if (editBookCoverPreview) URL.revokeObjectURL(editBookCoverPreview); setEditBookCoverPreview(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Libro</DialogTitle>
+            <DialogDescription>Cambia el nombre o agrega una carátula</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative w-32 h-44 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50">
+                {(editBookCoverPreview || editBookCoverFile) ? (
+                  <img
+                    src={editBookCoverFile ? URL.createObjectURL(editBookCoverFile) : editBookCoverPreview!}
+                    alt="Carátula"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8" />
+                    <span className="text-xs">Sin carátula</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Label htmlFor="cover-upload-bookfile" className="cursor-pointer">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    Subir carátula
+                  </div>
+                </Label>
+                <input
+                  id="cover-upload-bookfile"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setEditBookCoverFile(file);
+                    e.target.value = '';
+                  }}
+                />
+                {editBookCoverFile && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditBookCoverFile(null)}>
+                    <X className="h-3 w-3 mr-1" />Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-book-name" className="text-sm">Nombre del libro</Label>
+              <Input
+                id="edit-book-name"
+                value={editBookName}
+                onChange={(e) => setEditBookName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEditBook(); if (e.key === 'Escape') { setEditBook(null); setEditBookCoverFile(null); if (editBookCoverPreview) URL.revokeObjectURL(editBookCoverPreview); setEditBookCoverPreview(null); } }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditBook(null); setEditBookCoverFile(null); if (editBookCoverPreview) URL.revokeObjectURL(editBookCoverPreview); setEditBookCoverPreview(null); }}>Cancelar</Button>
+            <Button onClick={saveEditBook} disabled={savingBookEdit || !editBookName.trim() || (editBookName.trim() === editBook?.name && !editBookCoverFile)}>
+              {savingBookEdit ? <><RefreshCw className="h-4 w-4 mr-1 animate-spin" />Guardando...</> : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Rename Dialog */}
       <Dialog open={!!renameItem} onOpenChange={(open) => { if (!open) setRenameItem(null); }}>
         <DialogContent zIndex="z-[100]">
@@ -2563,7 +2836,7 @@ function LibrarySection() {
       {/* Loading */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-          {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="aspect-square rounded-xl" />)}
+          {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="aspect-[2/3] rounded-xl" />)}
         </div>
       ) : folders.length === 0 && books.length === 0 ? (
         <Card className="border-dashed border-2">
@@ -2587,7 +2860,7 @@ function LibrarySection() {
                   const hasCover = coverPaths[folder.path];
                   return (
                     <Card key={folder.path} className="group cursor-pointer overflow-hidden hover:border-amber-300 dark:hover:border-amber-700 transition-all hover:shadow-lg hover:-translate-y-1" onClick={() => navigateTo(folder.path)}>
-                      <div className="aspect-square relative bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40 overflow-hidden">
+                      <div className="aspect-[2/3] relative bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40 overflow-hidden">
                         {hasCover ? (
                           <img
                             src={`/api/music/cover?path=${encodeURIComponent(folder.path)}`}
@@ -2611,7 +2884,7 @@ function LibrarySection() {
                         </div>
                         {/* Actions menu */}
                         <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <FileActionsMenu item={folder} onRename={handleRename} onDelete={(f) => handleDelete(f.path, f.name)} />
+                          <FileActionsMenu item={folder} onRename={handleRename} onDelete={(f) => handleDelete(f.path, f.name)} onEdit={handleEditFolder} />
                         </div>
                       </div>
                       <CardContent className="p-3">
@@ -2670,7 +2943,7 @@ function LibrarySection() {
                         </div>
                         {/* Actions menu */}
                         <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <FileActionsMenu item={book} onRename={handleRename} onDelete={(b) => handleDelete(b.path, b.name)} />
+                          <FileActionsMenu item={book} onRename={handleRename} onDelete={(b) => handleDelete(b.path, b.name)} onEdit={handleEditBook} />
                         </div>
                       </div>
                       <CardContent className="p-3">
