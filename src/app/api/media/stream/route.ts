@@ -9,6 +9,7 @@ const AUDIO_EXTENSIONS = new Set([
 const VIDEO_EXTENSIONS = new Set([
   'mp4', 'mkv', 'avi', 'mov', 'wmv', 'flv', 'webm', 'm4v', 'mpg', 'mpeg', '3gp', 'ts',
   'vob', 'ogv', 'divx', 'xvid', 'rm', 'rmvb', 'asf', 'f4v', 'mts', 'm2ts', 'tp', 'trp',
+  'h264', 'h265', 'hevc', '264', '265', 'ts', 'mpe', 'mpv', 'm2v', 'm4p', 'f4p',
 ]);
 
 const IMAGE_EXTENSIONS = new Set([
@@ -51,6 +52,16 @@ const MEDIA_MIME_TYPES: Record<string, string> = {
   '.m2ts': 'video/mp2t',
   '.tp': 'video/mp2t',
   '.trp': 'video/mp2t',
+  '.h264': 'video/mp4',
+  '.h265': 'video/mp4',
+  '.hevc': 'video/mp4',
+  '.264': 'video/mp4',
+  '.265': 'video/mp4',
+  '.mpe': 'video/mpeg',
+  '.mpv': 'video/mpeg',
+  '.m2v': 'video/mpeg',
+  '.m4p': 'video/mp4',
+  '.f4p': 'video/mp4',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',

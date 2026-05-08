@@ -1677,13 +1677,15 @@ function FileActionsMenu({
   onRename, 
   onDelete, 
   children,
-  extraItems 
+  extraItems,
+  onEdit,
 }: { 
   item: { path: string; name: string }; 
   onRename: (item: { path: string; name: string }) => void;
   onDelete: (item: { path: string; name: string }) => void;
   children?: React.ReactNode;
   extraItems?: React.ReactNode;
+  onEdit?: (item: { path: string; name: string }) => void;
 }) {
   return (
     <DropdownMenu>
@@ -1700,10 +1702,18 @@ function FileActionsMenu({
         )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuItem onClick={() => onRename(item)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Renombrar
-        </DropdownMenuItem>
+        {onEdit && (
+          <DropdownMenuItem onClick={() => onEdit(item)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Editar
+          </DropdownMenuItem>
+        )}
+        {!onEdit && (
+          <DropdownMenuItem onClick={() => onRename(item)}>
+            <Edit className="h-4 w-4 mr-2" />
+            Renombrar
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => onDelete(item)} className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30">
           <Trash2 className="h-4 w-4 mr-2" />
@@ -2577,12 +2587,12 @@ function LibrarySection() {
                   const hasCover = coverPaths[folder.path];
                   return (
                     <Card key={folder.path} className="group cursor-pointer overflow-hidden hover:border-amber-300 dark:hover:border-amber-700 transition-all hover:shadow-lg hover:-translate-y-1" onClick={() => navigateTo(folder.path)}>
-                      <div className="aspect-square relative bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40">
+                      <div className="aspect-square relative bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-950/40 dark:to-orange-950/40 overflow-hidden">
                         {hasCover ? (
                           <img
                             src={`/api/music/cover?path=${encodeURIComponent(folder.path)}`}
                             alt={folder.name}
-                            className="w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-cover"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
@@ -3542,12 +3552,12 @@ function MusicSection() {
                   return (
                     <Card key={folder.path} className="group cursor-pointer overflow-hidden hover:border-violet-300 dark:hover:border-violet-700 transition-all hover:shadow-lg hover:-translate-y-1" onDoubleClick={() => navigateTo(folder.path)}>
                       {/* Cover */}
-                      <div className="aspect-square relative bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-950/40 dark:to-purple-950/40">
+                      <div className="aspect-square relative bg-gradient-to-br from-violet-100 to-purple-100 dark:from-violet-950/40 dark:to-purple-950/40 overflow-hidden">
                         {hasCover ? (
                           <img
                             src={`/api/music/cover?path=${encodeURIComponent(folder.path)}`}
                             alt={folder.name}
-                            className="w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-cover"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                           />
                         ) : (
@@ -3781,11 +3791,18 @@ function MoviesSection() {
       toast.success('Carpeta agregada');
     } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
   });
+  const [coverPaths, setCoverPaths] = useState<Record<string, boolean>>({});
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [sortAsc, setSortAsc] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Edit folder state
+  const [editFolder, setEditFolder] = useState<{ path: string; name: string } | null>(null);
+  const [editFolderName, setEditFolderName] = useState('');
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [activeTab, setActiveTab] = useState<'local' | 'bookmarks'>('local');
@@ -3805,6 +3822,15 @@ function MoviesSection() {
         const data = await res.json();
         setFolders(data.folders || []);
         setMovies((data.files || []).map((f: Record<string, unknown>) => ({ ...f, type: 'video' as const })));
+        // Check covers for folders
+        const coverCheck: Record<string, boolean> = {};
+        for (const f of (data.folders || [])) {
+          try {
+            const coverRes = await fetch(`/api/music/cover?path=${encodeURIComponent(f.path)}`);
+            coverCheck[f.path] = coverRes.ok && coverRes.headers.get('content-type')?.startsWith('image/');
+          } catch { coverCheck[f.path] = false; }
+        }
+        setCoverPaths(coverCheck);
       }
     } catch {
       toast.error('Error cargando películas');
@@ -3897,6 +3923,14 @@ function MoviesSection() {
     return `${window.location.origin}/api/media/stream?path=${encodeURIComponent(movie.path)}`;
   };
 
+  const getStreamUrl = (movie: MediaItem) => {
+    const ext = (movie.extension || '').toLowerCase();
+    if (['mp4', 'webm', 'ogv', 'm4v'].includes(ext)) {
+      return `/api/media/stream?path=${encodeURIComponent(movie.path)}`;
+    }
+    return `/api/media/transcode?path=${encodeURIComponent(movie.path)}`;
+  };
+
   const openInNewTab = (movie: MediaItem) => {
     window.open(getDirectUrl(movie), '_blank');
   };
@@ -3978,6 +4012,73 @@ function MoviesSection() {
       toast.error('Error de conexión');
     }
     setRenameItem(null);
+  };
+
+  // ── Edit Folder (rename + cover) ──
+  const handleEditFolder = async (item: { path: string; name: string }) => {
+    setEditFolder(item);
+    setEditFolderName(item.name);
+    setEditCoverFile(null);
+    // Load current cover preview
+    try {
+      const res = await fetch(`/api/music/cover?path=${encodeURIComponent(item.path)}`);
+      if (res.ok && res.headers.get('content-type')?.startsWith('image/')) {
+        const blob = await res.blob();
+        setEditCoverPreview(URL.createObjectURL(blob));
+      } else {
+        setEditCoverPreview(null);
+      }
+    } catch {
+      setEditCoverPreview(null);
+    }
+  };
+
+  const saveEditFolder = async () => {
+    if (!editFolder || !editFolderName.trim()) return;
+    setSavingEdit(true);
+    try {
+      // Rename if changed
+      if (editFolderName.trim() !== editFolder.name) {
+        const res = await fetch('/api/files/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: editFolder.path, newName: editFolderName.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error || 'Error al renombrar');
+          setSavingEdit(false);
+          return;
+        }
+      }
+      // Upload cover if selected
+      if (editCoverFile) {
+        const formData = new FormData();
+        // Use updated path if renamed
+        const folderPath = editFolderName.trim() !== editFolder.name
+          ? editFolder.path.replace(/[^/]+$/, editFolderName.trim())
+          : editFolder.path;
+        formData.append('path', folderPath);
+        formData.append('cover', editCoverFile);
+        const coverRes = await fetch('/api/music/cover', { method: 'POST', body: formData });
+        if (!coverRes.ok) {
+          const data = await coverRes.json().catch(() => ({}));
+          toast.error(data.error || 'Error al subir carátula');
+          setSavingEdit(false);
+          return;
+        }
+      }
+      toast.success('Carpeta actualizada');
+      setEditFolder(null);
+      setEditCoverFile(null);
+      if (editCoverPreview) URL.revokeObjectURL(editCoverPreview);
+      setEditCoverPreview(null);
+      loadMedia();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   // ── Movie Bookmarks ──
@@ -4125,7 +4226,7 @@ function MoviesSection() {
               controls
               playsInline
               onError={() => setVideoError(true)}
-              src={`/api/media/stream?path=${encodeURIComponent(currentMovie.path)}`}
+              src={getStreamUrl(currentMovie)}
             />
           )}
         </div>
@@ -4166,6 +4267,76 @@ function MoviesSection() {
           </div>
           )}
           <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Folder Dialog (rename + cover) */}
+      <Dialog open={!!editFolder} onOpenChange={(open) => { if (!open) { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Carpeta</DialogTitle>
+            <DialogDescription>Cambia el nombre o agrega una carátula</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Cover preview + upload */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50">
+                {(editCoverPreview || editCoverFile) ? (
+                  <img
+                    src={editCoverFile ? URL.createObjectURL(editCoverFile) : editCoverPreview!}
+                    alt="Carátula"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8" />
+                    <span className="text-xs">Sin carátula</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Label htmlFor="cover-upload-movie" className="cursor-pointer">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    Subir carátula
+                  </div>
+                </Label>
+                <input
+                  id="cover-upload-movie"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setEditCoverFile(file);
+                    e.target.value = '';
+                  }}
+                />
+                {editCoverFile && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditCoverFile(null)}>
+                    <X className="h-3 w-3 mr-1" />Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Folder name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-folder-name-movie" className="text-sm">Nombre de la carpeta</Label>
+              <Input
+                id="edit-folder-name-movie"
+                value={editFolderName}
+                onChange={(e) => setEditFolderName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEditFolder(); if (e.key === 'Escape') { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); } }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); }}>Cancelar</Button>
+            <Button onClick={saveEditFolder} disabled={savingEdit || !editFolderName.trim() || (editFolderName.trim() === editFolder?.name && !editCoverFile)}>
+              {savingEdit ? <><RefreshCw className="h-4 w-4 mr-1 animate-spin" />Guardando...</> : 'Guardar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -4328,25 +4499,55 @@ function MoviesSection() {
           {/* Folders */}
           {filteredFolders.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2">Carpetas</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <h3 className="text-sm font-semibold text-muted-foreground mb-3">Carpetas</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {sortedFolders.map((folder) => {
+                  const hasCover = coverPaths[folder.path];
                   const subCount = (folder as unknown as { subFolderCount?: number }).subFolderCount || 0;
                   return (
-                  <Card key={folder.path} className="group cursor-pointer hover:border-rose-300 dark:hover:border-rose-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
-                    <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                      <div className="relative">
-                        <div className="p-3 rounded-xl bg-rose-100 dark:bg-rose-900/30"><Folder className="h-6 w-6 text-rose-600 dark:text-rose-400" /></div>
-                        {folder.itemCount > 0 ? (
-                          <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-rose-500/70 text-white h-4 w-4 flex items-center justify-center p-0"><Play className="h-2 w-2" /></Badge>
+                    <Card key={folder.path} className="group cursor-pointer overflow-hidden hover:border-rose-300 dark:hover:border-rose-700 transition-all hover:shadow-lg hover:-translate-y-1" onClick={() => navigateTo(folder.path)}>
+                      {/* Cover */}
+                      <div className="aspect-[2/3] relative bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-950/40 dark:to-pink-950/40 overflow-hidden">
+                        {hasCover ? (
+                          <img
+                            src={`/api/music/cover?path=${encodeURIComponent(folder.path)}`}
+                            alt={folder.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                            <Folder className="h-12 w-12 text-rose-300 dark:text-rose-700" />
+                            <Film className="h-6 w-6 text-rose-400 dark:text-rose-600" />
+                          </div>
+                        )}
+                        {/* Play overlay */}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                          <div className="opacity-0 group-hover:opacity-100 transition-all flex gap-2">
+                            <Button size="icon" className="h-10 w-10 rounded-full bg-rose-500 hover:bg-rose-600 text-white shadow-lg" onClick={(e) => { e.stopPropagation(); navigateTo(folder.path); }}>
+                              <Play className="h-5 w-5 ml-0.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        {/* Badge */}
+                        <div className="absolute top-2 right-2">
+                          {folder.itemCount > 0 ? (
+                          <Badge variant="secondary" className="text-[10px] bg-rose-500/70 text-white backdrop-blur-sm flex items-center gap-1"><Play className="h-2.5 w-2.5" />{folder.itemCount}</Badge>
                         ) : subCount > 0 ? (
-                          <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-amber-500/70 text-white h-4 min-w-4 flex items-center justify-center p-0">{subCount}</Badge>
+                          <Badge variant="secondary" className="text-[10px] bg-amber-500/70 text-white backdrop-blur-sm flex items-center gap-1"><Folder className="h-2.5 w-2.5" />{subCount}</Badge>
                         ) : null}
+                        </div>
+                        {/* Actions menu */}
+                        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <FileActionsMenu item={folder} onRename={handleRename} onDelete={(f) => handleDelete(f.path, f.name)} onEdit={handleEditFolder} />
+                        </div>
                       </div>
-                      <p className="text-xs font-medium truncate w-full">{folder.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{folder.itemCount > 0 ? `${folder.itemCount} video${folder.itemCount !== 1 ? 's' : ''}` : subCount > 0 ? `${subCount} subcarpeta${subCount !== 1 ? 's' : ''}` : 'Vacío'}</p>
-                    </CardContent>
-                  </Card>
+                      {/* Folder name */}
+                      <CardContent className="p-3">
+                        <p className="text-sm font-medium truncate">{folder.name}</p>
+                        <p className="text-xs text-muted-foreground">{folder.itemCount > 0 ? `${folder.itemCount} video${folder.itemCount !== 1 ? 's' : ''}` : subCount > 0 ? `${subCount} subcarpeta${subCount !== 1 ? 's' : ''}` : 'Vacío'}</p>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>
@@ -4574,9 +4775,16 @@ function TvShowsSection() {
       toast.success('Carpeta agregada');
     } catch (e) { toast.error('No se pudo guardar la carpeta'); console.error(e); }
   });
+  const [coverPaths, setCoverPaths] = useState<Record<string, boolean>>({});
   const [sortAsc, setSortAsc] = useState(true);
   const [renameItem, setRenameItem] = useState<{ path: string; name: string } | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  // Edit folder state
+  const [editFolder, setEditFolder] = useState<{ path: string; name: string } | null>(null);
+  const [editFolderName, setEditFolderName] = useState('');
+  const [editCoverFile, setEditCoverFile] = useState<File | null>(null);
+  const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   // ── Video player state (local) ──
   const [currentTvVideo, setCurrentTvVideo] = useState<MediaItem | null>(null);
@@ -4613,6 +4821,15 @@ function TvShowsSection() {
         const data = await res.json();
         setFolders(data.folders || []);
         setTvFiles((data.files || []).map((f: Record<string, unknown>) => ({ ...f, type: 'video' as const })));
+        // Check covers for folders
+        const coverCheck: Record<string, boolean> = {};
+        for (const f of (data.folders || [])) {
+          try {
+            const coverRes = await fetch(`/api/music/cover?path=${encodeURIComponent(f.path)}`);
+            coverCheck[f.path] = coverRes.ok && coverRes.headers.get('content-type')?.startsWith('image/');
+          } catch { coverCheck[f.path] = false; }
+        }
+        setCoverPaths(coverCheck);
       }
     } catch {
       toast.error('Error cargando TV Shows');
@@ -4726,6 +4943,69 @@ function TvShowsSection() {
     setRenameItem(null);
   };
 
+  // ── Edit Folder (rename + cover) ──
+  const handleEditFolder = async (item: { path: string; name: string }) => {
+    setEditFolder(item);
+    setEditFolderName(item.name);
+    setEditCoverFile(null);
+    try {
+      const res = await fetch(`/api/music/cover?path=${encodeURIComponent(item.path)}`);
+      if (res.ok && res.headers.get('content-type')?.startsWith('image/')) {
+        const blob = await res.blob();
+        setEditCoverPreview(URL.createObjectURL(blob));
+      } else {
+        setEditCoverPreview(null);
+      }
+    } catch {
+      setEditCoverPreview(null);
+    }
+  };
+
+  const saveEditFolder = async () => {
+    if (!editFolder || !editFolderName.trim()) return;
+    setSavingEdit(true);
+    try {
+      if (editFolderName.trim() !== editFolder.name) {
+        const res = await fetch('/api/files/rename', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath: editFolder.path, newName: editFolderName.trim() }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error || 'Error al renombrar');
+          setSavingEdit(false);
+          return;
+        }
+      }
+      if (editCoverFile) {
+        const formData = new FormData();
+        const folderPath = editFolderName.trim() !== editFolder.name
+          ? editFolder.path.replace(/[^/]+$/, editFolderName.trim())
+          : editFolder.path;
+        formData.append('path', folderPath);
+        formData.append('cover', editCoverFile);
+        const coverRes = await fetch('/api/music/cover', { method: 'POST', body: formData });
+        if (!coverRes.ok) {
+          const data = await coverRes.json().catch(() => ({}));
+          toast.error(data.error || 'Error al subir carátula');
+          setSavingEdit(false);
+          return;
+        }
+      }
+      toast.success('Carpeta actualizada');
+      setEditFolder(null);
+      setEditCoverFile(null);
+      if (editCoverPreview) URL.revokeObjectURL(editCoverPreview);
+      setEditCoverPreview(null);
+      loadMedia();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   // ── Video player ──
   const playTvVideo = (item: MediaItem) => { setCurrentTvVideo(item); };
 
@@ -4748,6 +5028,14 @@ function TvShowsSection() {
   };
 
   const getDirectUrl = (item: MediaItem) => `${window.location.origin}/api/media/stream?path=${encodeURIComponent(item.path)}`;
+
+  const getStreamUrl = (item: MediaItem) => {
+    const ext = (item.extension || '').toLowerCase();
+    if (['mp4', 'webm', 'ogv', 'm4v'].includes(ext)) {
+      return `/api/media/stream?path=${encodeURIComponent(item.path)}`;
+    }
+    return `/api/media/transcode?path=${encodeURIComponent(item.path)}`;
+  };
 
   const openInNewTab = (item: MediaItem) => window.open(getDirectUrl(item), '_blank');
 
@@ -4925,7 +5213,7 @@ function TvShowsSection() {
               </div>
             </div>
           ) : (
-            <video ref={videoRef} className="w-full h-full object-contain" autoPlay controls playsInline onError={() => setVideoError(true)} src={`/api/media/stream?path=${encodeURIComponent(currentTvVideo.path)}`} />
+            <video ref={videoRef} className="w-full h-full object-contain" autoPlay controls playsInline onError={() => setVideoError(true)} src={getStreamUrl(currentTvVideo)} />
           )}
         </div>
       )}
@@ -4965,6 +5253,76 @@ function TvShowsSection() {
           </div>
           )}
           <DialogFooter>{!folderPicker.pickerMode && <Button variant="outline" onClick={() => setShowSettings(false)}>Cerrar</Button>}</DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Folder Dialog (rename + cover) */}
+      <Dialog open={!!editFolder} onOpenChange={(open) => { if (!open) { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); } }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Carpeta</DialogTitle>
+            <DialogDescription>Cambia el nombre o agrega una carátula</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Cover preview + upload */}
+            <div className="flex flex-col items-center gap-3">
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30 flex items-center justify-center bg-muted/50">
+                {(editCoverPreview || editCoverFile) ? (
+                  <img
+                    src={editCoverFile ? URL.createObjectURL(editCoverFile) : editCoverPreview!}
+                    alt="Carátula"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8" />
+                    <span className="text-xs">Sin carátula</span>
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Label htmlFor="cover-upload-tv" className="cursor-pointer">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                    <Upload className="h-3.5 w-3.5" />
+                    Subir carátula
+                  </div>
+                </Label>
+                <input
+                  id="cover-upload-tv"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setEditCoverFile(file);
+                    e.target.value = '';
+                  }}
+                />
+                {editCoverFile && (
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setEditCoverFile(null)}>
+                    <X className="h-3 w-3 mr-1" />Quitar
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Folder name */}
+            <div className="space-y-2">
+              <Label htmlFor="edit-folder-name-tv" className="text-sm">Nombre de la carpeta</Label>
+              <Input
+                id="edit-folder-name-tv"
+                value={editFolderName}
+                onChange={(e) => setEditFolderName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEditFolder(); if (e.key === 'Escape') { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); } }}
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setEditFolder(null); setEditCoverFile(null); if (editCoverPreview) URL.revokeObjectURL(editCoverPreview); setEditCoverPreview(null); }}>Cancelar</Button>
+            <Button onClick={saveEditFolder} disabled={savingEdit || !editFolderName.trim() || (editFolderName.trim() === editFolder?.name && !editCoverFile)}>
+              {savingEdit ? <><RefreshCw className="h-4 w-4 mr-1 animate-spin" />Guardando...</> : 'Guardar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -5130,23 +5488,53 @@ function TvShowsSection() {
             {/* Folders */}
             {filteredFolders.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">Carpetas</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3">Carpetas</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                   {sortedFolders.map((folder) => {
+                    const hasCover = coverPaths[folder.path];
                     const subCount = (folder as unknown as { subFolderCount?: number }).subFolderCount || 0;
                     return (
-                      <Card key={folder.path} className="group cursor-pointer hover:border-sky-300 dark:hover:border-sky-700 transition-all hover:shadow-md hover:-translate-y-0.5" onClick={() => navigateTo(folder.path)}>
-                        <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-                          <div className="relative">
-                            <div className="p-3 rounded-xl bg-sky-100 dark:bg-sky-900/30"><Folder className="h-6 w-6 text-sky-600 dark:text-sky-400" /></div>
-                            {folder.itemCount > 0 ? (
-                              <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-sky-500/70 text-white h-4 w-4 flex items-center justify-center p-0"><Play className="h-2 w-2" /></Badge>
-                            ) : subCount > 0 ? (
-                              <Badge variant="secondary" className="absolute -top-1 -right-1 text-[9px] bg-amber-500/70 text-white h-4 min-w-4 flex items-center justify-center p-0">{subCount}</Badge>
-                            ) : null}
+                      <Card key={folder.path} className="group cursor-pointer overflow-hidden hover:border-sky-300 dark:hover:border-sky-700 transition-all hover:shadow-lg hover:-translate-y-1" onClick={() => navigateTo(folder.path)}>
+                        {/* Cover */}
+                        <div className="aspect-[2/3] relative bg-gradient-to-br from-sky-100 to-blue-100 dark:from-sky-950/40 dark:to-blue-950/40 overflow-hidden">
+                          {hasCover ? (
+                            <img
+                              src={`/api/music/cover?path=${encodeURIComponent(folder.path)}`}
+                              alt={folder.name}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                              <Folder className="h-12 w-12 text-sky-300 dark:text-sky-700" />
+                              <Monitor className="h-6 w-6 text-sky-400 dark:text-sky-600" />
+                            </div>
+                          )}
+                          {/* Play overlay */}
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 transition-all flex gap-2">
+                              <Button size="icon" className="h-10 w-10 rounded-full bg-sky-500 hover:bg-sky-600 text-white shadow-lg" onClick={(e) => { e.stopPropagation(); navigateTo(folder.path); }}>
+                                <Play className="h-5 w-5 ml-0.5" />
+                              </Button>
+                            </div>
                           </div>
-                          <p className="text-xs font-medium truncate w-full">{folder.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{folder.itemCount > 0 ? `${folder.itemCount} video${folder.itemCount !== 1 ? 's' : ''}` : subCount > 0 ? `${subCount} subcarpeta${subCount !== 1 ? 's' : ''}` : 'Vacío'}</p>
+                          {/* Badge */}
+                          <div className="absolute top-2 right-2">
+                            {folder.itemCount > 0 ? (
+                            <Badge variant="secondary" className="text-[10px] bg-sky-500/70 text-white backdrop-blur-sm flex items-center gap-1"><Play className="h-2.5 w-2.5" />{folder.itemCount}</Badge>
+                          ) : subCount > 0 ? (
+                            <Badge variant="secondary" className="text-[10px] bg-amber-500/70 text-white backdrop-blur-sm flex items-center gap-1"><Folder className="h-2.5 w-2.5" />{subCount}</Badge>
+                          ) : null}
+                          </div>
+                          {/* Actions menu */}
+                          <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <FileActionsMenu item={folder} onRename={handleRename} onDelete={(f) => handleDelete(f.path, f.name)} onEdit={handleEditFolder} />
+                          </div>
+                        </div>
+                        {/* Folder name */}
+                        <CardContent className="p-3">
+                          <p className="text-sm font-medium truncate">{folder.name}</p>
+                          <p className="text-xs text-muted-foreground">{folder.itemCount > 0 ? `${folder.itemCount} video${folder.itemCount !== 1 ? 's' : ''}` : subCount > 0 ? `${subCount} subcarpeta${subCount !== 1 ? 's' : ''}` : 'Vacío'}</p>
                         </CardContent>
                       </Card>
                     );
@@ -5759,7 +6147,7 @@ function ImagesSection() {
       {/* Loading */}
       {loading ? (
         <div className={viewMode === 'list' ? 'space-y-2' : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3'}>
-          {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className={viewMode === 'list' ? 'h-12 rounded-lg' : 'aspect-square rounded-lg'} />)}
+          {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className={viewMode === 'list' ? 'h-12 rounded-lg' : 'aspect-[2/3] rounded-lg'} />)}
         </div>
       ) : filteredFolders.length === 0 && filteredImages.length === 0 ? (
         <Card className="border-dashed border-2">
@@ -5812,7 +6200,7 @@ function ImagesSection() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
               {sortedImages.map((img) => (
                 <Card key={img.path} className="group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 overflow-hidden" onClick={() => openImage(img)}>
-                  <div className="aspect-square relative bg-muted">
+                  <div className="aspect-[2/3] relative bg-muted">
                     <img
                       src={`/api/media/stream?path=${encodeURIComponent(img.path)}`}
                       alt={img.name}
